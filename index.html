@@ -61,9 +61,44 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #m3u-section{display:none;}
 #m3u-section.show{display:block;}
 
+/* Servidores pré-configurados */
+.srv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.srv-btn{
+  padding:12px 8px;background:var(--surface2);border:2px solid var(--border);
+  border-radius:var(--r);color:var(--muted);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .18s;font-family:'Source Sans 3',sans-serif;
+  text-align:center;letter-spacing:.5px;
+}
+.srv-btn:hover{border-color:var(--accent);color:var(--text);background:rgba(230,57,70,.08);}
+.srv-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.12);}
+.srv-btn .srv-name{font-size:15px;font-weight:700;display:block;margin-bottom:3px;}
+.srv-btn .srv-status{font-size:11px;color:var(--green);}
+.srv-btn.uncfg{opacity:.45;cursor:default;}
+.srv-btn.uncfg:hover{border-color:var(--border);color:var(--muted);background:var(--surface2);}
+
+/* Mostrar senha */
+.pass-wrap{position:relative;}
+.pass-wrap input{padding-right:48px;}
+.pass-eye{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);
+  padding:4px;transition:color .15s;line-height:1;
+}
+.pass-eye:hover{color:var(--text);}
+
 .btn-enter{width:100%;padding:16px;margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:2px;cursor:pointer;transition:filter .15s,transform .1s;}
 .btn-enter:hover{filter:brightness(1.1);}
 .btn-enter:active{transform:scale(.98);}
+
+/* Botões sair / trocar servidor na tela de login */
+.login-bottom-btns{display:flex;gap:8px;margin-top:12px;}
+.btn-logout-login{
+  flex:1;padding:11px;background:transparent;border:1px solid var(--border);
+  border-radius:var(--r);color:var(--muted);font-size:14px;cursor:pointer;
+  font-family:'Source Sans 3',sans-serif;transition:all .15s;text-align:center;
+}
+.btn-logout-login:hover{border-color:var(--accent2);color:var(--accent2);}
+
 .login-err{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent2);padding:12px 16px;border-radius:var(--r);font-size:14px;margin-top:12px;display:none;}
 
 /* ─── MAIN LAYOUT ─── */
@@ -84,15 +119,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 .hp-credit{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.6;}
 .hp-credit a{color:var(--blue);text-decoration:none;}
 .hp-credit a:hover{color:var(--accent2);}
+.hp-action-btns{display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-top:1px solid var(--border);}
+.hp-action-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;font-family:'Source Sans 3',sans-serif;width:100%;text-align:left;}
+.hp-action-btn:hover{border-color:var(--accent);color:var(--text);}
+.hp-action-btn.danger:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(255,107,107,.08);}
+.hp-action-btn .btn-icon{font-size:15px;}
 
 /* ─── CATEGORY PANEL ─── */
 #cat-panel{width:250px;flex-shrink:0;background:var(--surface2);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s;}
 #cat-panel.collapsed{width:0;overflow:hidden;border:none;}
 #cat-header{padding:20px 20px 14px;border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:20px;font-weight:500;letter-spacing:1px;color:var(--accent);display:flex;align-items:center;gap:8px;}
 #cat-list{flex:1;overflow-y:auto;padding:8px 0;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
-.cat-item{padding:14px 20px;font-size:16px;cursor:pointer;border-left:3px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
+.cat-item{padding:14px 20px;font-size:16px;cursor:pointer;border-left:3px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .cat-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
 .cat-item.active{background:rgba(230,57,70,.1);border-left-color:var(--accent);color:var(--text);font-weight:600;}
+.cat-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cat-cached{font-size:9px;color:var(--green);flex-shrink:0;opacity:.8;}
 
 /* ─── CONTENT PANEL ─── */
 #content-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
@@ -335,10 +377,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 <div id="login-page">
   <div class="login-card">
     <h1><em>CP</em>StreamTV</h1>
-    <p>Acesse com seus dados do servidor IPTV</p>
-    <div class="preset-btns">
-      <button class="preset-btn" onclick="setPreset('https://toppcard.fun')">toppcard.fun</button>
-      <button class="preset-btn" onclick="setPreset('https://streams4k.xyz')">streams4k.xyz</button>
+    <p>Selecione um servidor ou configure manualmente</p>
+
+    <!-- 4 Servidores pré-configurados -->
+    <div class="srv-grid" id="srv-grid">
+      <button class="srv-btn" id="srv-btn-0" onclick="selectServer(0)">
+        <span class="srv-name">CPStreamTV-S1</span>
+        <span class="srv-status" id="srv-status-0">● Disponível</span>
+      </button>
+      <button class="srv-btn" id="srv-btn-1" onclick="selectServer(1)">
+        <span class="srv-name">CPStreamTV-S2</span>
+        <span class="srv-status" id="srv-status-1">● Disponível</span>
+      </button>
+      <button class="srv-btn" id="srv-btn-2" onclick="selectServer(2)">
+        <span class="srv-name">CPStreamTV-S3</span>
+        <span class="srv-status" id="srv-status-2">● Disponível</span>
+      </button>
+      <button class="srv-btn" id="srv-btn-3" onclick="selectServer(3)">
+        <span class="srv-name">CPStreamTV-S4</span>
+        <span class="srv-status" id="srv-status-3">● Disponível</span>
+      </button>
     </div>
 
     <!-- M3U URL toggle -->
@@ -356,19 +414,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
     </div>
 
     <div id="xtream-section">
-      <div class="form-field">
-        <label>Servidor</label>
-        <input id="f-server" type="text" placeholder="http://seu-servidor.com"/>
-      </div>
+      <!-- Campo servidor oculto — preenchido automaticamente ao selecionar S1-S4 -->
+      <input id="f-server" type="hidden"/>
       <div class="form-field">
         <label>Usuário</label>
-        <input id="f-user" type="text" placeholder="usuário"/>
+        <input id="f-user" type="text" placeholder="Seu usuário" autocomplete="username"/>
       </div>
       <div class="form-field">
         <label>Senha</label>
-        <input id="f-pass" type="password" placeholder="senha"/>
+        <div class="pass-wrap">
+          <input id="f-pass" type="password" placeholder="Sua senha" autocomplete="current-password"/>
+          <button class="pass-eye" type="button" onclick="togglePassVis()" title="Mostrar/ocultar senha" id="pass-eye-btn">👁</button>
+        </div>
       </div>
-      <button class="btn-enter" onclick="doLogin()">ENTRAR</button>
+      <button class="btn-enter" onclick="doLogin()">▶ ENTRAR</button>
       <div class="login-err" id="login-err"></div>
     </div>
   </div>
@@ -409,6 +468,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
         <span style="font-size:10px;">Criador &amp; Dev. Especialista em IA</span><br>
         <a href="https://www.youtube.com/@CriadorC" target="_blank" class="credit-link" style="font-size:10px;">▶ youtube.com/@CriadorC</a>
       </div>
+    </div>
+    <!-- Botões ação -->
+    <div class="hp-action-btns">
+      <button class="hp-action-btn" onclick="goToConfig()" title="Trocar servidor ou login">
+        <span class="btn-icon">⚙</span> Trocar Servidor
+      </button>
+      <button class="hp-action-btn danger" onclick="doExitApp()" title="Sair do app">
+        <span class="btn-icon">⏻</span> Sair do App
+      </button>
     </div>
   </div>
 
@@ -710,10 +778,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 
 <script>
 // ═══════════════════════════════════════════════════
-//  CPStreamTV v3.0 — Player IPTV Completo
+//  CPStreamTV v3.2 — Player IPTV Completo
 //  Prof. Cristovam Pereira | criador.mql5@gmail.com
 //  https://www.youtube.com/@CriadorC
 // ═══════════════════════════════════════════════════
+
+// Timeout de segurança — se o boot travar por qualquer motivo
+// após 8 segundos força a exibição da tela de login
+setTimeout(() => {
+  const boot  = document.getElementById('boot');
+  const login = document.getElementById('login-page');
+  const app   = document.getElementById('app');
+  if (boot && !boot.classList.contains('hide')) {
+    boot.classList.add('hide');
+    if (!app.classList.contains('show')) showLogin();
+  }
+}, 8000);
+
+// Captura erros globais silenciosamente — evita tela branca em TVs antigas
+window.addEventListener('error', e => { console.warn('CPStreamTV erro:', e.message); });
+window.addEventListener('unhandledrejection', e => { e.preventDefault(); console.warn('CPStreamTV promise:', e.reason); });
 
 // ── Config
 let CFG = { server:'', user:'', pass:'', m3uUrl:'', isM3U:false };
@@ -774,36 +858,152 @@ let m3uItems = [];
 const TIZEN_UA = 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1';
 
 // ═══════════════════════════════════════════════════
+// ── Os 4 servidores — cliente NUNCA vê as URLs reais
+const SERVERS = [
+  { label:'CPStreamTV-S1', url:'http://toppcard.fun',       user:'', pass:'' },
+  { label:'CPStreamTV-S2', url:'http://streams4k.xyz',      user:'', pass:'' },
+  { label:'CPStreamTV-S3', url:'http://pedidoonline.space',  user:'', pass:'' },
+  { label:'CPStreamTV-S4', url:'http://g2026.sbs',          user:'', pass:'' },
+];
+let selectedSrv = -1;
+
+function initServerButtons() {
+  SERVERS.forEach((s, i) => {
+    const btn    = document.getElementById('srv-btn-' + i);
+    const status = document.getElementById('srv-status-' + i);
+    if (!btn) return;
+    if (!s.url) {
+      btn.classList.add('uncfg');
+      status.textContent = '○ Não configurado';
+      status.style.color = 'var(--muted)';
+    } else {
+      btn.classList.remove('uncfg');
+      status.textContent = '● Disponível';
+      status.style.color = 'var(--green)';
+    }
+  });
+}
+
+function selectServer(i) {
+  const s = SERVERS[i];
+  if (!s.url) return;
+  selectedSrv = i;
+  document.querySelectorAll('.srv-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  // URL fica no campo oculto — cliente não vê o servidor real
+  document.getElementById('f-server').value = s.url;
+  // Limpa usuário e senha — cliente digita os próprios dados
+  document.getElementById('f-user').value = '';
+  document.getElementById('f-pass').value = '';
+  setTimeout(() => document.getElementById('f-user').focus(), 150);
+  toast('✅ ' + s.label + ' selecionado — digite seu usuário e senha');
+}
+
+// ── Mostrar/ocultar senha
+function togglePassVis() {
+  const input = document.getElementById('f-pass');
+  const btn   = document.getElementById('pass-eye-btn');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+
+// ── Ir para configurações (tela de login) sem sair da conta
+function goToConfig() {
+  stopPlayer();
+  closePlayer();
+  clearAllCache(); // limpa cache ao trocar servidor
+  document.getElementById('app').classList.remove('show');
+  fillLoginFields();
+  showLogin();
+}
+
+// ── Sair completamente do app
+function doExitApp() {
+  if (!confirm('Deseja sair do CPStreamTV?')) return;
+  stopPlayer();
+  closePlayer();
+  clearAllCache(); // limpa cache ao sair
+  localStorage.removeItem('stv_cfg');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('f-user').value   = '';
+  document.getElementById('f-pass').value   = '';
+  document.getElementById('f-server').value = '';
+  selectedSrv = -1;
+  document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
+  showLogin();
+  toast('Sessão encerrada');
+}
+
+// ═══════════════════════════════════════════════════
+// PROXIES CORS — sem Cloudflare para evitar bloqueio de streaming
+// ═══════════════════════════════════════════════════
+// Ordem: direto → proxy1 (workers) → proxy2 (allorigins) → proxy3 (htmldriven)
+function buildProxyUrls(url) {
+  return [
+    url,
+    `https://proxy.cors.sh/${url}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://thingproxy.freeboard.io/fetch/${url}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+}
+
+// ═══════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════
-window.addEventListener('load', async () => {
-  await animateBoot();
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  // Não usa async/await no boot principal — evita travar TVs lentas
   loadFavs();
   loadZoom();
   loadHistory();
-  const saved = getSavedCfg();
-  if (saved) {
-    CFG = saved;
-    fillLoginFields();
-    showApp();
-    selectSection('live');
-  } else {
-    document.getElementById('f-server').value = 'https://toppcard.fun';
-    showLogin();
-  }
+  initServerButtons();
+
+  animateBoot().then(() => {
+    const saved = getSavedCfg();
+    if (saved) {
+      CFG = saved;
+      fillLoginFields();
+      showApp();
+      // Mostra o app IMEDIATAMENTE — carrega conteúdo depois
+      // Pequeno delay para TV renderizar a UI antes de fazer requisições
+      setTimeout(() => {
+        selectSection('live');
+        // Favoritos em background após a seção principal carregar
+        if (favorites.length) {
+          setTimeout(() => preloadFavorites(), 3000);
+        }
+      }, 100);
+    } else {
+      showLogin();
+    }
+  });
 });
 
 function animateBoot() {
   return new Promise(res => {
     const fill = document.getElementById('bfill');
     const msg  = document.getElementById('bmsg');
-    const steps = [[33,'Iniciando player...'],[66,'Carregando recursos...'],[100,'Pronto!']];
+    const steps = [[40,'Iniciando...'],[80,'Carregando...'],[100,'Pronto!']];
     let i = 0;
     const tick = () => {
-      if (i >= steps.length) { setTimeout(()=>{ document.getElementById('boot').classList.add('hide'); setTimeout(res,500); },300); return; }
-      const [pct,txt] = steps[i++];
-      fill.style.width = pct+'%'; msg.textContent = txt;
-      setTimeout(tick,500);
+      if (i >= steps.length) {
+        // Esconde boot imediatamente sem esperar — TV lenta não trava aqui
+        const boot = document.getElementById('boot');
+        boot.classList.add('hide');
+        setTimeout(res, 300); // apenas 300ms de fade
+        return;
+      }
+      const [pct, txt] = steps[i++];
+      fill.style.width = pct + '%';
+      msg.textContent  = txt;
+      setTimeout(tick, 300); // reduzido de 500ms para 300ms
     };
     tick();
   });
@@ -817,6 +1017,15 @@ function fillLoginFields() {
   if (CFG.user)   document.getElementById('f-user').value   = CFG.user;
   if (CFG.pass)   document.getElementById('f-pass').value   = CFG.pass;
   if (CFG.isM3U)  { document.getElementById('m3u-check').checked = true; toggleM3UMode(true); if(CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl; }
+  // Destaca servidor ativo se for um dos pré-configurados
+  if (CFG.server) {
+    SERVERS.forEach((s, i) => {
+      if (s.url && s.url === CFG.server) {
+        document.getElementById('srv-btn-' + i)?.classList.add('active');
+        selectedSrv = i;
+      }
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -870,11 +1079,7 @@ async function doLoginM3U() {
 }
 
 async function fetchM3U(url) {
-  const attempts = [
-    url,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  ];
+  const attempts = buildProxyUrls(url);
   for (const u of attempts) {
     try {
       const ctrl = new AbortController();
@@ -929,16 +1134,16 @@ function showM3USection() {
 // ═══════════════════════════════════════════════════
 async function apiGet(action, extra='') {
   const url = `${CFG.server}/player_api.php?username=${CFG.user}&password=${CFG.pass}&action=${action}${extra}`;
-  const attempts = [url, `https://corsproxy.io/?${encodeURIComponent(url)}`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
+  const attempts = buildProxyUrls(url);
   for (const u of attempts) {
     try {
       const ctrl = new AbortController();
-      const tid  = setTimeout(()=>ctrl.abort(),10000);
+      const tid  = setTimeout(()=>ctrl.abort(), 10000);
       const r    = await fetch(u, { signal:ctrl.signal, headers:{'User-Agent':TIZEN_UA} });
       clearTimeout(tid);
       if (!r.ok) continue;
       const data = await r.json();
-      if (data!==null&&data!==undefined) return data;
+      if (data!==null && data!==undefined) return data;
     } catch(e) {}
   }
   throw new Error('Servidor inacessível. Verifique a URL e credenciais.');
@@ -956,35 +1161,87 @@ const SECTION_META = {
   history: { icon:'🕓', label:'Histórico',         catAction:null,                   itemAction:null                },
 };
 
+// ═══════════════════════════════════════════════════
+// CACHE INTELIGENTE — lazy loading por categoria
+// ═══════════════════════════════════════════════════
+// Estrutura: itemCache['live:cat_123'] = [...canais]
+//            catCache['live'] = [...categorias]
+// Limpo apenas ao trocar servidor ou sair do app
+const itemCache = {};  // cache de itens por seção+categoria
+const catCache  = {};  // cache de categorias por seção
+let favsPreloaded = false; // controle de pré-carregamento de favoritos
+
+// Chave única para o cache
+function cacheKey(sec, catId) { return `${sec}:${catId}`; }
+
+// Pré-carrega favoritos assim que o app abre — prioridade máxima
+async function preloadFavorites() {
+  if (!favorites.length || favsPreloaded || CFG.isM3U) return;
+  favsPreloaded = true;
+  // Carrega todos os canais ao vivo em background para popular os favoritos
+  try {
+    const key = cacheKey('live','all');
+    if (!itemCache[key]) {
+      const raw = await apiGet('get_live_streams');
+      if (Array.isArray(raw) && raw.length) {
+        itemCache[key] = raw;
+        cacheLiveChannels(raw);
+        // Também cacheia por categoria
+        const cats = {};
+        raw.forEach(ch => {
+          const cid = String(ch.category_id||'');
+          if (cid) { if(!cats[cid]) cats[cid]=[]; cats[cid].push(ch); }
+        });
+        Object.entries(cats).forEach(([cid, items]) => { itemCache[cacheKey('live', cid)] = items; });
+      }
+    }
+  } catch(e) { /* silencioso — não bloqueia o app */ }
+}
+
+// Limpa todo o cache (ao trocar servidor / sair)
+function clearAllCache() {
+  Object.keys(itemCache).forEach(k => delete itemCache[k]);
+  Object.keys(catCache).forEach(k  => delete catCache[k]);
+  favsPreloaded = false;
+}
+
 async function selectSection(sec) {
-  if (SECTION&&SECTION!==sec&&document.getElementById('app').classList.contains('show')) {
+  if (SECTION && SECTION !== sec && document.getElementById('app').classList.contains('show')) {
     navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
   }
   SECTION  = sec;
   curCatId = 'all';
   curItemIdx = 0;
   document.getElementById('search-input').value = '';
-  document.querySelectorAll('.hp-item').forEach(el=>el.classList.toggle('active',el.dataset.sec===sec));
+  document.querySelectorAll('.hp-item').forEach(el => el.classList.toggle('active', el.dataset.sec === sec));
   const meta = SECTION_META[sec];
-  document.getElementById('cat-icon').textContent    = meta.icon;
-  document.getElementById('cat-heading').textContent = meta.label;
+  document.getElementById('cat-icon').textContent     = meta.icon;
+  document.getElementById('cat-heading').textContent  = meta.label;
   document.getElementById('content-title').textContent = meta.label;
 
-  if (sec==='favs')    { showFavsSection(); return; }
-  if (sec==='history') { showHistorySection(); return; }
+  if (sec === 'favs')    { showFavsSection(); return; }
+  if (sec === 'history') { showHistorySection(); return; }
 
-  // M3U mode
   if (CFG.isM3U) {
-    if (sec!=='live') { toast('Modo M3U: apenas canais ao vivo disponíveis','err'); showM3USection(); return; }
+    if (sec !== 'live') { toast('Modo M3U: apenas canais ao vivo disponíveis','err'); showM3USection(); return; }
     showM3USection(); return;
+  }
+
+  // ── Categorias: usa cache se disponível — nunca bloqueia
+  if (catCache[sec]) {
+    allCats = catCache[sec];
+    renderCats(allCats);
+    loadItems('all'); // sem await — não bloqueia
+    return;
   }
 
   setCatLoading();
   try {
     const raw = await apiGet(meta.catAction);
-    allCats = [{ category_id:'all', category_name:'Todos' }, ...(Array.isArray(raw)?raw:[])];
+    allCats = [{ category_id:'all', category_name:'Todos' }, ...(Array.isArray(raw) ? raw : [])];
+    catCache[sec] = allCats;
     renderCats(allCats);
-    await loadItems('all');
+    loadItems('all'); // sem await — não bloqueia
   } catch(e) { toast('Erro ao carregar categorias: '+e.message,'err'); setCatError(); }
 }
 
@@ -1000,18 +1257,19 @@ function renderCats(cats) {
   const list = document.getElementById('cat-list');
   list.innerHTML = '';
   cats.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'cat-item'+(c.category_id===curCatId?' active':'');
-    el.textContent = c.category_name;
-    el.dataset.id  = c.category_id;
+    const el  = document.createElement('div');
+    const key = cacheKey(SECTION, c.category_id);
+    const cached = !!itemCache[key];
+    el.className = 'cat-item' + (c.category_id === curCatId ? ' active' : '');
+    el.dataset.id = c.category_id;
+    // Mostra ponto verde se já carregado, spinner se carregando, nada se não carregado
+    el.innerHTML = `<span class="cat-name">${c.category_name}</span>`
+      + (cached ? '<span class="cat-cached">●</span>' : '');
     el.onclick = () => {
-      document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('active'));
       el.classList.add('active');
-      if (CFG.isM3U) {
-        filterM3UByGroup(c.category_name, c.category_id);
-      } else {
-        loadItems(c.category_id);
-      }
+      if (CFG.isM3U) filterM3UByGroup(c.category_name, c.category_id);
+      else loadItems(c.category_id);
     };
     list.appendChild(el);
   });
@@ -1019,24 +1277,52 @@ function renderCats(cats) {
 
 function filterM3UByGroup(groupName, catId) {
   curCatId = catId;
-  allItems = catId==='all' ? m3uItems : m3uItems.filter(i=>(i.category_name||'Geral')===groupName);
+  allItems = catId === 'all' ? m3uItems : m3uItems.filter(i => (i.category_name||'Geral') === groupName);
   visItems = allItems;
   document.getElementById('search-input').value = '';
   renderItems(visItems);
 }
 
 async function loadItems(catId) {
-  if (curCatId!==catId&&allItems.length) navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
-  curCatId = catId; curItemIdx = 0;
+  const key = cacheKey(SECTION, catId);
+
+  // ── HIT de cache — exibe instantaneamente sem requisição
+  if (itemCache[key]) {
+    curCatId  = catId;
+    curItemIdx = 0;
+    document.getElementById('search-input').value = '';
+    allItems = itemCache[key];
+    visItems = allItems;
+    renderItems(visItems);
+    return;
+  }
+
+  // ── MISS — busca no servidor e salva no cache
+  if (curCatId !== catId && allItems.length) {
+    navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
+  }
+  curCatId  = catId;
+  curItemIdx = 0;
   document.getElementById('search-input').value = '';
   showGridLoading();
   const meta = SECTION_META[SECTION];
   try {
-    const extra = catId==='all' ? '' : `&category_id=${catId}`;
+    const extra = catId === 'all' ? '' : `&category_id=${catId}`;
     const raw   = await apiGet(meta.itemAction, extra);
-    allItems = Array.isArray(raw)?raw:[];
+    allItems = Array.isArray(raw) ? raw : [];
+    itemCache[key] = allItems; // salva no cache
+    // Marca categoria como carregada com ponto verde
+    const catEl = document.querySelector(`.cat-item[data-id="${catId}"]`);
+    if (catEl && !catEl.querySelector('.cat-cached')) {
+      const dot = document.createElement('span');
+      dot.className = 'cat-cached';
+      dot.textContent = '●';
+      catEl.appendChild(dot);
+    }
     visItems = allItems;
     renderItems(visItems);
+    // Se são canais ao vivo, cacheia por canal para os favoritos
+    if (SECTION === 'live' && allItems.length) cacheLiveChannels(allItems);
   } catch(e) { toast('Erro: '+e.message,'err'); showGridEmpty('❌','Erro ao carregar.'); }
 }
 
@@ -1323,11 +1609,8 @@ function updateSettingsInfo() {
   document.getElementById('set-pos-count').textContent = posKeys.length+' posições salvas';
 }
 function doLogout() {
-  localStorage.removeItem('stv_cfg');
-  closeSettings(); closePlayer(); stopPlayer();
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('f-user').value=''; document.getElementById('f-pass').value=''; document.getElementById('f-server').value='https://toppcard.fun';
-  showLogin();
+  closeSettings();
+  doExitApp();
 }
 function clearSavedPos() {
   Object.keys(localStorage).filter(k=>k.startsWith('stv_pos_')).forEach(k=>localStorage.removeItem(k));
