@@ -61,44 +61,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #m3u-section{display:none;}
 #m3u-section.show{display:block;}
 
-/* Servidores pré-configurados */
-.srv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.srv-btn{
-  padding:12px 8px;background:var(--surface2);border:2px solid var(--border);
-  border-radius:var(--r);color:var(--muted);font-size:13px;font-weight:600;
-  cursor:pointer;transition:all .18s;font-family:'Source Sans 3',sans-serif;
-  text-align:center;letter-spacing:.5px;
-}
-.srv-btn:hover{border-color:var(--accent);color:var(--text);background:rgba(230,57,70,.08);}
-.srv-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.12);}
-.srv-btn .srv-name{font-size:15px;font-weight:700;display:block;margin-bottom:3px;}
-.srv-btn .srv-status{font-size:11px;color:var(--green);}
-.srv-btn.uncfg{opacity:.45;cursor:default;}
-.srv-btn.uncfg:hover{border-color:var(--border);color:var(--muted);background:var(--surface2);}
-
-/* Mostrar senha */
-.pass-wrap{position:relative;}
-.pass-wrap input{padding-right:48px;}
-.pass-eye{
-  position:absolute;right:14px;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);
-  padding:4px;transition:color .15s;line-height:1;
-}
-.pass-eye:hover{color:var(--text);}
-
 .btn-enter{width:100%;padding:16px;margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:2px;cursor:pointer;transition:filter .15s,transform .1s;}
 .btn-enter:hover{filter:brightness(1.1);}
 .btn-enter:active{transform:scale(.98);}
-
-/* Botões sair / trocar servidor na tela de login */
-.login-bottom-btns{display:flex;gap:8px;margin-top:12px;}
-.btn-logout-login{
-  flex:1;padding:11px;background:transparent;border:1px solid var(--border);
-  border-radius:var(--r);color:var(--muted);font-size:14px;cursor:pointer;
-  font-family:'Source Sans 3',sans-serif;transition:all .15s;text-align:center;
-}
-.btn-logout-login:hover{border-color:var(--accent2);color:var(--accent2);}
-
 .login-err{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:var(--accent2);padding:12px 16px;border-radius:var(--r);font-size:14px;margin-top:12px;display:none;}
 
 /* ─── MAIN LAYOUT ─── */
@@ -119,11 +84,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 .hp-credit{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);line-height:1.6;}
 .hp-credit a{color:var(--blue);text-decoration:none;}
 .hp-credit a:hover{color:var(--accent2);}
-.hp-action-btns{display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-top:1px solid var(--border);}
-.hp-action-btn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s;font-family:'Source Sans 3',sans-serif;width:100%;text-align:left;}
-.hp-action-btn:hover{border-color:var(--accent);color:var(--text);}
-.hp-action-btn.danger:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(255,107,107,.08);}
-.hp-action-btn .btn-icon{font-size:15px;}
 
 /* ─── CATEGORY PANEL ─── */
 #cat-panel{width:250px;flex-shrink:0;background:var(--surface2);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s;}
@@ -375,26 +335,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 <div id="login-page">
   <div class="login-card">
     <h1><em>CP</em>StreamTV</h1>
-    <p>Selecione um servidor ou configure manualmente</p>
-
-    <!-- 4 Servidores pré-configurados -->
-    <div class="srv-grid" id="srv-grid">
-      <button class="srv-btn" id="srv-btn-0" onclick="selectServer(0)">
-        <span class="srv-name">CPStreamTV-S1</span>
-        <span class="srv-status" id="srv-status-0">● Disponível</span>
-      </button>
-      <button class="srv-btn" id="srv-btn-1" onclick="selectServer(1)">
-        <span class="srv-name">CPStreamTV-S2</span>
-        <span class="srv-status" id="srv-status-1">● Disponível</span>
-      </button>
-      <button class="srv-btn" id="srv-btn-2" onclick="selectServer(2)">
-        <span class="srv-name">CPStreamTV-S3</span>
-        <span class="srv-status" id="srv-status-2">● Disponível</span>
-      </button>
-      <button class="srv-btn" id="srv-btn-3" onclick="selectServer(3)">
-        <span class="srv-name">CPStreamTV-S4</span>
-        <span class="srv-status" id="srv-status-3">● Disponível</span>
-      </button>
+    <p>Acesse com seus dados do servidor IPTV</p>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="setPreset('https://toppcard.fun')">toppcard.fun</button>
+      <button class="preset-btn" onclick="setPreset('https://streams4k.xyz')">streams4k.xyz</button>
     </div>
 
     <!-- M3U URL toggle -->
@@ -418,16 +362,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
       </div>
       <div class="form-field">
         <label>Usuário</label>
-        <input id="f-user" type="text" placeholder="usuário" autocomplete="username"/>
+        <input id="f-user" type="text" placeholder="usuário"/>
       </div>
       <div class="form-field">
         <label>Senha</label>
-        <div class="pass-wrap">
-          <input id="f-pass" type="password" placeholder="senha" autocomplete="current-password"/>
-          <button class="pass-eye" type="button" onclick="togglePassVis()" title="Mostrar/ocultar senha" id="pass-eye-btn">👁</button>
-        </div>
+        <input id="f-pass" type="password" placeholder="senha"/>
       </div>
-      <button class="btn-enter" onclick="doLogin()">▶ ENTRAR</button>
+      <button class="btn-enter" onclick="doLogin()">ENTRAR</button>
       <div class="login-err" id="login-err"></div>
     </div>
   </div>
@@ -468,15 +409,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
         <span style="font-size:10px;">Criador &amp; Dev. Especialista em IA</span><br>
         <a href="https://www.youtube.com/@CriadorC" target="_blank" class="credit-link" style="font-size:10px;">▶ youtube.com/@CriadorC</a>
       </div>
-    </div>
-    <!-- Botões ação -->
-    <div class="hp-action-btns">
-      <button class="hp-action-btn" onclick="goToConfig()" title="Trocar servidor ou login">
-        <span class="btn-icon">⚙</span> Trocar Servidor
-      </button>
-      <button class="hp-action-btn danger" onclick="doExitApp()" title="Sair do app">
-        <span class="btn-icon">⏻</span> Sair do App
-      </button>
     </div>
   </div>
 
@@ -842,106 +774,6 @@ let m3uItems = [];
 const TIZEN_UA = 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1';
 
 // ═══════════════════════════════════════════════════
-// SERVIDORES PRÉ-CONFIGURADOS (edite aqui — cliente nunca vê)
-// ═══════════════════════════════════════════════════
-// Para configurar: preencha url/user/pass de cada servidor.
-// Deixe url:'' para marcar como "não configurado".
-const SERVERS = [
-  { label:'CPStreamTV-S1', url:'https://toppcard.fun',        user:'venrkdml7n02', pass:'SUA_SENHA' },
-  { label:'CPStreamTV-S2', url:'http://streams4k.xyz',       user:'venrkdml7n02', pass:'SUA_SENHA' },
-  { label:'CPStreamTV-S3', url:'http://pedidoonline.space',   user:'venrkdml7n02', pass:'SUA_SENHA' },
-  { label:'CPStreamTV-S4', url:'http://g2026.sbs',           user:'venrkdml7n02', pass:'SUA_SENHA' },
-];
-let selectedSrv = -1; // índice do servidor selecionado
-
-// Inicializa visual dos botões de servidor
-function initServerButtons() {
-  SERVERS.forEach((s, i) => {
-    const btn    = document.getElementById('srv-btn-' + i);
-    const status = document.getElementById('srv-status-' + i);
-    if (!btn) return;
-    if (!s.url) {
-      btn.classList.add('uncfg');
-      status.textContent = '○ Não configurado';
-      status.style.color = 'var(--muted)';
-    } else {
-      btn.classList.remove('uncfg');
-      status.textContent = '● Disponível';
-      status.style.color = 'var(--green)';
-    }
-  });
-}
-
-function selectServer(i) {
-  const s = SERVERS[i];
-  if (!s.url) return; // não configurado
-  selectedSrv = i;
-  // Highlight botão ativo
-  document.querySelectorAll('.srv-btn').forEach((b, j) => b.classList.toggle('active', j === i));
-  // Preenche campos (URL oculta no campo servidor, mas editável)
-  document.getElementById('f-server').value = s.url;
-  document.getElementById('f-user').value   = s.user;
-  document.getElementById('f-pass').value   = s.pass;
-  // Se usuário e senha já preenchidos, faz login direto
-  if (s.url && s.user && s.pass) {
-    doLogin();
-  }
-}
-
-// ── Mostrar/ocultar senha
-function togglePassVis() {
-  const input = document.getElementById('f-pass');
-  const btn   = document.getElementById('pass-eye-btn');
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = '🙈';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁';
-  }
-}
-
-// ── Ir para configurações (tela de login) sem sair da conta
-function goToConfig() {
-  stopPlayer();
-  closePlayer();
-  document.getElementById('app').classList.remove('show');
-  fillLoginFields();
-  showLogin();
-}
-
-// ── Sair completamente do app
-function doExitApp() {
-  if (!confirm('Deseja sair do CPStreamTV?')) return;
-  stopPlayer();
-  closePlayer();
-  localStorage.removeItem('stv_cfg');
-  document.getElementById('app').classList.remove('show');
-  // Limpa campos
-  document.getElementById('f-user').value = '';
-  document.getElementById('f-pass').value = '';
-  document.getElementById('f-server').value = '';
-  selectedSrv = -1;
-  document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
-  showLogin();
-  toast('Sessão encerrada');
-}
-
-// ═══════════════════════════════════════════════════
-// PROXIES CORS — sem Cloudflare para evitar bloqueio de streaming
-// ═══════════════════════════════════════════════════
-// Ordem: direto → proxy1 (workers) → proxy2 (allorigins) → proxy3 (htmldriven)
-function buildProxyUrls(url) {
-  return [
-    url,
-    `https://proxy.cors.sh/${url}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://thingproxy.freeboard.io/fetch/${url}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  ];
-}
-
-// ═══════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════
 window.addEventListener('load', async () => {
@@ -949,7 +781,6 @@ window.addEventListener('load', async () => {
   loadFavs();
   loadZoom();
   loadHistory();
-  initServerButtons(); // inicializa visual dos 4 servidores
   const saved = getSavedCfg();
   if (saved) {
     CFG = saved;
@@ -957,6 +788,7 @@ window.addEventListener('load', async () => {
     showApp();
     selectSection('live');
   } else {
+    document.getElementById('f-server').value = 'https://toppcard.fun';
     showLogin();
   }
 });
@@ -985,15 +817,6 @@ function fillLoginFields() {
   if (CFG.user)   document.getElementById('f-user').value   = CFG.user;
   if (CFG.pass)   document.getElementById('f-pass').value   = CFG.pass;
   if (CFG.isM3U)  { document.getElementById('m3u-check').checked = true; toggleM3UMode(true); if(CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl; }
-  // Destaca servidor ativo se for um dos pré-configurados
-  if (CFG.server) {
-    SERVERS.forEach((s, i) => {
-      if (s.url && s.url === CFG.server) {
-        document.getElementById('srv-btn-' + i)?.classList.add('active');
-        selectedSrv = i;
-      }
-    });
-  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1047,7 +870,11 @@ async function doLoginM3U() {
 }
 
 async function fetchM3U(url) {
-  const attempts = buildProxyUrls(url);
+  const attempts = [
+    url,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
   for (const u of attempts) {
     try {
       const ctrl = new AbortController();
@@ -1102,16 +929,16 @@ function showM3USection() {
 // ═══════════════════════════════════════════════════
 async function apiGet(action, extra='') {
   const url = `${CFG.server}/player_api.php?username=${CFG.user}&password=${CFG.pass}&action=${action}${extra}`;
-  const attempts = buildProxyUrls(url);
+  const attempts = [url, `https://corsproxy.io/?${encodeURIComponent(url)}`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
   for (const u of attempts) {
     try {
       const ctrl = new AbortController();
-      const tid  = setTimeout(()=>ctrl.abort(), 10000);
+      const tid  = setTimeout(()=>ctrl.abort(),10000);
       const r    = await fetch(u, { signal:ctrl.signal, headers:{'User-Agent':TIZEN_UA} });
       clearTimeout(tid);
       if (!r.ok) continue;
       const data = await r.json();
-      if (data!==null && data!==undefined) return data;
+      if (data!==null&&data!==undefined) return data;
     } catch(e) {}
   }
   throw new Error('Servidor inacessível. Verifique a URL e credenciais.');
@@ -1496,8 +1323,11 @@ function updateSettingsInfo() {
   document.getElementById('set-pos-count').textContent = posKeys.length+' posições salvas';
 }
 function doLogout() {
-  closeSettings();
-  doExitApp();
+  localStorage.removeItem('stv_cfg');
+  closeSettings(); closePlayer(); stopPlayer();
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('f-user').value=''; document.getElementById('f-pass').value=''; document.getElementById('f-server').value='https://toppcard.fun';
+  showLogin();
 }
 function clearSavedPos() {
   Object.keys(localStorage).filter(k=>k.startsWith('stv_pos_')).forEach(k=>localStorage.removeItem(k));
@@ -1861,6 +1691,7 @@ function hideTracksPanel() { document.getElementById('tracks-panel').classList.r
 // ═══════════════════════════════════════════════════
 // EPG — Full Panel
 // ═══════════════════════════════════════════════════
+let epgCache={};
 let epgFullCache={}; // stream_id -> full listings
 
 async function openEPGPanel() {
