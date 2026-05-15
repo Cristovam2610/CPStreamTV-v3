@@ -414,8 +414,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
     </div>
 
     <div id="xtream-section">
-      <!-- Campo servidor oculto — preenchido automaticamente ao selecionar S1-S4 -->
-      <input id="f-server" type="hidden"/>
+      <!-- Campo servidor oculto visualmente mas type=text para compatibilidade com todos os WebViews -->
+      <input id="f-server" type="text" style="position:absolute;opacity:0;height:0;width:0;pointer-events:none;" tabindex="-1" autocomplete="off"/>
       <div class="form-field">
         <label>Usuário</label>
         <input id="f-user" type="text" placeholder="Seu usuário" autocomplete="username"/>
@@ -889,7 +889,8 @@ function selectServer(i) {
   if (!s.url) return;
   selectedSrv = i;
   document.querySelectorAll('.srv-btn').forEach((b, j) => b.classList.toggle('active', j === i));
-  // URL fica no campo oculto — cliente não vê o servidor real
+  // Salva URL no CFG imediatamente — não depende do campo hidden
+  CFG.server = s.url;
   document.getElementById('f-server').value = s.url;
   // Limpa usuário e senha — cliente digita os próprios dados
   document.getElementById('f-user').value = '';
@@ -1013,14 +1014,22 @@ function getSavedCfg() {
   try { const d = JSON.parse(localStorage.getItem('stv_cfg')||'{}'); return d.server||d.m3uUrl ? d : null; } catch { return null; }
 }
 function fillLoginFields() {
-  if (CFG.server) document.getElementById('f-server').value = CFG.server;
-  if (CFG.user)   document.getElementById('f-user').value   = CFG.user;
-  if (CFG.pass)   document.getElementById('f-pass').value   = CFG.pass;
-  if (CFG.isM3U)  { document.getElementById('m3u-check').checked = true; toggleM3UMode(true); if(CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl; }
-  // Destaca servidor ativo se for um dos pré-configurados
+  // Restaura servidor no CFG — campo hidden pode não funcionar em todos os WebViews
+  if (CFG.server) {
+    CFG.server = CFG.server; // garante que está no objeto
+    document.getElementById('f-server').value = CFG.server;
+  }
+  if (CFG.user) document.getElementById('f-user').value = CFG.user;
+  if (CFG.pass) document.getElementById('f-pass').value = CFG.pass;
+  if (CFG.isM3U) {
+    document.getElementById('m3u-check').checked = true;
+    toggleM3UMode(true);
+    if (CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl;
+  }
+  // Destaca botão do servidor ativo
   if (CFG.server) {
     SERVERS.forEach((s, i) => {
-      if (s.url && s.url === CFG.server) {
+      if (s.url && s.url.replace(/\/+$/,'') === CFG.server.replace(/\/+$/,'')) {
         document.getElementById('srv-btn-' + i)?.classList.add('active');
         selectedSrv = i;
       }
@@ -1042,24 +1051,35 @@ function toggleM3UMode(on) {
 }
 
 async function doLogin() {
-  const server = document.getElementById('f-server').value.trim().replace(/\/+$/,'');
+  // Pega servidor do campo hidden OU do CFG já salvo (TCL Google TV fix)
+  const serverField = document.getElementById('f-server').value.trim().replace(/\/+$/,'');
+  const server = serverField || (CFG.server ? CFG.server.replace(/\/+$/,'') : '');
   const user   = document.getElementById('f-user').value.trim();
   const pass   = document.getElementById('f-pass').value.trim();
   const errEl  = document.getElementById('login-err');
   errEl.style.display = 'none';
-  if (!server||!user||!pass) { errEl.textContent='Preencha todos os campos.'; errEl.style.display='block'; return; }
+  if (!server) {
+    errEl.textContent = 'Selecione um servidor (S1 a S4).';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!user || !pass) {
+    errEl.textContent = 'Digite seu usuário e senha.';
+    errEl.style.display = 'block';
+    return;
+  }
   CFG = { server, user, pass, isM3U:false };
-  errEl.textContent='Conectando...'; errEl.style.display='block'; errEl.style.color='#aaa';
+  errEl.textContent = 'Conectando...'; errEl.style.display = 'block'; errEl.style.color = '#aaa';
   try {
     const url = `${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`;
     const r = await Promise.race([
-      fetch(url,{headers:{'User-Agent':TIZEN_UA}}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
-      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))
+      fetch(url, {headers:{'User-Agent':TIZEN_UA}}).then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 12000))
     ]);
     if (!Array.isArray(r)) throw new Error('Resposta inválida');
     localStorage.setItem('stv_cfg', JSON.stringify(CFG));
     hideLogin(); showApp(); selectSection('live');
-  } catch(e) { errEl.textContent='❌ Erro ao conectar: '+e.message; errEl.style.color='#ff6b6b'; }
+  } catch(e) { errEl.textContent = '❌ Erro ao conectar: '+e.message; errEl.style.color = '#ff6b6b'; }
 }
 
 async function doLoginM3U() {
