@@ -130,11 +130,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #cat-panel.collapsed{width:0;overflow:hidden;border:none;}
 #cat-header{padding:20px 20px 14px;border-bottom:1px solid var(--border);font-family:'Oswald',sans-serif;font-size:20px;font-weight:500;letter-spacing:1px;color:var(--accent);display:flex;align-items:center;gap:8px;}
 #cat-list{flex:1;overflow-y:auto;padding:8px 0;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
-.cat-item{padding:14px 20px;font-size:16px;cursor:pointer;border-left:3px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.cat-item{padding:14px 20px;font-size:16px;cursor:pointer;border-left:3px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
 .cat-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
 .cat-item.active{background:rgba(230,57,70,.1);border-left-color:var(--accent);color:var(--text);font-weight:600;}
-.cat-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.cat-cached{font-size:9px;color:var(--green);flex-shrink:0;opacity:.8;}
 
 /* ─── CONTENT PANEL ─── */
 #content-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
@@ -414,16 +412,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
     </div>
 
     <div id="xtream-section">
-      <!-- Campo servidor oculto visualmente mas type=text para compatibilidade com todos os WebViews -->
-      <input id="f-server" type="text" style="position:absolute;opacity:0;height:0;width:0;pointer-events:none;" tabindex="-1" autocomplete="off"/>
+      <div class="form-field">
+        <label>Servidor</label>
+        <input id="f-server" type="text" placeholder="http://seu-servidor.com"/>
+      </div>
       <div class="form-field">
         <label>Usuário</label>
-        <input id="f-user" type="text" placeholder="Seu usuário" autocomplete="username"/>
+        <input id="f-user" type="text" placeholder="usuário" autocomplete="username"/>
       </div>
       <div class="form-field">
         <label>Senha</label>
         <div class="pass-wrap">
-          <input id="f-pass" type="password" placeholder="Sua senha" autocomplete="current-password"/>
+          <input id="f-pass" type="password" placeholder="senha" autocomplete="current-password"/>
           <button class="pass-eye" type="button" onclick="togglePassVis()" title="Mostrar/ocultar senha" id="pass-eye-btn">👁</button>
         </div>
       </div>
@@ -778,26 +778,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 
 <script>
 // ═══════════════════════════════════════════════════
-//  CPStreamTV v3.2 — Player IPTV Completo
+//  CPStreamTV v3.0 — Player IPTV Completo
 //  Prof. Cristovam Pereira | criador.mql5@gmail.com
 //  https://www.youtube.com/@CriadorC
 // ═══════════════════════════════════════════════════
-
-// Timeout de segurança — se o boot travar por qualquer motivo
-// após 8 segundos força a exibição da tela de login
-setTimeout(() => {
-  const boot  = document.getElementById('boot');
-  const login = document.getElementById('login-page');
-  const app   = document.getElementById('app');
-  if (boot && !boot.classList.contains('hide')) {
-    boot.classList.add('hide');
-    if (!app.classList.contains('show')) showLogin();
-  }
-}, 8000);
-
-// Captura erros globais silenciosamente — evita tela branca em TVs antigas
-window.addEventListener('error', e => { console.warn('CPStreamTV erro:', e.message); });
-window.addEventListener('unhandledrejection', e => { e.preventDefault(); console.warn('CPStreamTV promise:', e.reason); });
 
 // ── Config
 let CFG = { server:'', user:'', pass:'', m3uUrl:'', isM3U:false };
@@ -858,15 +842,19 @@ let m3uItems = [];
 const TIZEN_UA = 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1';
 
 // ═══════════════════════════════════════════════════
-// ── Os 4 servidores — cliente NUNCA vê as URLs reais
+// SERVIDORES PRÉ-CONFIGURADOS (edite aqui — cliente nunca vê)
+// ═══════════════════════════════════════════════════
+// Para configurar: preencha url/user/pass de cada servidor.
+// Deixe url:'' para marcar como "não configurado".
 const SERVERS = [
-  { label:'CPStreamTV-S1', url:'http://toppcard.fun',       user:'', pass:'' },
-  { label:'CPStreamTV-S2', url:'http://streams4k.xyz',      user:'', pass:'' },
-  { label:'CPStreamTV-S3', url:'http://pedidoonline.space',  user:'', pass:'' },
-  { label:'CPStreamTV-S4', url:'http://g2026.sbs',          user:'', pass:'' },
+  { label:'CPStreamTV-S1', url:'https://toppcard.fun',        user:'venrkdml7n02', pass:'SUA_SENHA' },
+  { label:'CPStreamTV-S2', url:'http://streams4k.xyz',       user:'venrkdml7n02', pass:'SUA_SENHA' },
+  { label:'CPStreamTV-S3', url:'http://pedidoonline.space',   user:'venrkdml7n02', pass:'SUA_SENHA' },
+  { label:'CPStreamTV-S4', url:'http://g2026.sbs',           user:'venrkdml7n02', pass:'SUA_SENHA' },
 ];
-let selectedSrv = -1;
+let selectedSrv = -1; // índice do servidor selecionado
 
+// Inicializa visual dos botões de servidor
 function initServerButtons() {
   SERVERS.forEach((s, i) => {
     const btn    = document.getElementById('srv-btn-' + i);
@@ -886,17 +874,18 @@ function initServerButtons() {
 
 function selectServer(i) {
   const s = SERVERS[i];
-  if (!s.url) return;
+  if (!s.url) return; // não configurado
   selectedSrv = i;
+  // Highlight botão ativo
   document.querySelectorAll('.srv-btn').forEach((b, j) => b.classList.toggle('active', j === i));
-  // Salva URL no CFG imediatamente — não depende do campo hidden
-  CFG.server = s.url;
+  // Preenche campos (URL oculta no campo servidor, mas editável)
   document.getElementById('f-server').value = s.url;
-  // Limpa usuário e senha — cliente digita os próprios dados
-  document.getElementById('f-user').value = '';
-  document.getElementById('f-pass').value = '';
-  setTimeout(() => document.getElementById('f-user').focus(), 150);
-  toast('✅ ' + s.label + ' selecionado — digite seu usuário e senha');
+  document.getElementById('f-user').value   = s.user;
+  document.getElementById('f-pass').value   = s.pass;
+  // Se usuário e senha já preenchidos, faz login direto
+  if (s.url && s.user && s.pass) {
+    doLogin();
+  }
 }
 
 // ── Mostrar/ocultar senha
@@ -916,7 +905,6 @@ function togglePassVis() {
 function goToConfig() {
   stopPlayer();
   closePlayer();
-  clearAllCache(); // limpa cache ao trocar servidor
   document.getElementById('app').classList.remove('show');
   fillLoginFields();
   showLogin();
@@ -927,11 +915,11 @@ function doExitApp() {
   if (!confirm('Deseja sair do CPStreamTV?')) return;
   stopPlayer();
   closePlayer();
-  clearAllCache(); // limpa cache ao sair
   localStorage.removeItem('stv_cfg');
   document.getElementById('app').classList.remove('show');
-  document.getElementById('f-user').value   = '';
-  document.getElementById('f-pass').value   = '';
+  // Limpa campos
+  document.getElementById('f-user').value = '';
+  document.getElementById('f-pass').value = '';
   document.getElementById('f-server').value = '';
   selectedSrv = -1;
   document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
@@ -956,55 +944,34 @@ function buildProxyUrls(url) {
 // ═══════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  // Não usa async/await no boot principal — evita travar TVs lentas
+window.addEventListener('load', async () => {
+  await animateBoot();
   loadFavs();
   loadZoom();
   loadHistory();
-  initServerButtons();
-
-  animateBoot().then(() => {
-    const saved = getSavedCfg();
-    if (saved) {
-      CFG = saved;
-      fillLoginFields();
-      showApp();
-      // Mostra o app IMEDIATAMENTE — carrega conteúdo depois
-      // Pequeno delay para TV renderizar a UI antes de fazer requisições
-      setTimeout(() => {
-        selectSection('live');
-        // Favoritos em background após a seção principal carregar
-        if (favorites.length) {
-          setTimeout(() => preloadFavorites(), 3000);
-        }
-      }, 100);
-    } else {
-      showLogin();
-    }
-  });
+  initServerButtons(); // inicializa visual dos 4 servidores
+  const saved = getSavedCfg();
+  if (saved) {
+    CFG = saved;
+    fillLoginFields();
+    showApp();
+    selectSection('live');
+  } else {
+    showLogin();
+  }
 });
 
 function animateBoot() {
   return new Promise(res => {
     const fill = document.getElementById('bfill');
     const msg  = document.getElementById('bmsg');
-    const steps = [[40,'Iniciando...'],[80,'Carregando...'],[100,'Pronto!']];
+    const steps = [[33,'Iniciando player...'],[66,'Carregando recursos...'],[100,'Pronto!']];
     let i = 0;
     const tick = () => {
-      if (i >= steps.length) {
-        // Esconde boot imediatamente sem esperar — TV lenta não trava aqui
-        const boot = document.getElementById('boot');
-        boot.classList.add('hide');
-        setTimeout(res, 300); // apenas 300ms de fade
-        return;
-      }
-      const [pct, txt] = steps[i++];
-      fill.style.width = pct + '%';
-      msg.textContent  = txt;
-      setTimeout(tick, 300); // reduzido de 500ms para 300ms
+      if (i >= steps.length) { setTimeout(()=>{ document.getElementById('boot').classList.add('hide'); setTimeout(res,500); },300); return; }
+      const [pct,txt] = steps[i++];
+      fill.style.width = pct+'%'; msg.textContent = txt;
+      setTimeout(tick,500);
     };
     tick();
   });
@@ -1014,22 +981,14 @@ function getSavedCfg() {
   try { const d = JSON.parse(localStorage.getItem('stv_cfg')||'{}'); return d.server||d.m3uUrl ? d : null; } catch { return null; }
 }
 function fillLoginFields() {
-  // Restaura servidor no CFG — campo hidden pode não funcionar em todos os WebViews
-  if (CFG.server) {
-    CFG.server = CFG.server; // garante que está no objeto
-    document.getElementById('f-server').value = CFG.server;
-  }
-  if (CFG.user) document.getElementById('f-user').value = CFG.user;
-  if (CFG.pass) document.getElementById('f-pass').value = CFG.pass;
-  if (CFG.isM3U) {
-    document.getElementById('m3u-check').checked = true;
-    toggleM3UMode(true);
-    if (CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl;
-  }
-  // Destaca botão do servidor ativo
+  if (CFG.server) document.getElementById('f-server').value = CFG.server;
+  if (CFG.user)   document.getElementById('f-user').value   = CFG.user;
+  if (CFG.pass)   document.getElementById('f-pass').value   = CFG.pass;
+  if (CFG.isM3U)  { document.getElementById('m3u-check').checked = true; toggleM3UMode(true); if(CFG.m3uUrl) document.getElementById('f-m3u').value = CFG.m3uUrl; }
+  // Destaca servidor ativo se for um dos pré-configurados
   if (CFG.server) {
     SERVERS.forEach((s, i) => {
-      if (s.url && s.url.replace(/\/+$/,'') === CFG.server.replace(/\/+$/,'')) {
+      if (s.url && s.url === CFG.server) {
         document.getElementById('srv-btn-' + i)?.classList.add('active');
         selectedSrv = i;
       }
@@ -1051,35 +1010,24 @@ function toggleM3UMode(on) {
 }
 
 async function doLogin() {
-  // Pega servidor do campo hidden OU do CFG já salvo (TCL Google TV fix)
-  const serverField = document.getElementById('f-server').value.trim().replace(/\/+$/,'');
-  const server = serverField || (CFG.server ? CFG.server.replace(/\/+$/,'') : '');
+  const server = document.getElementById('f-server').value.trim().replace(/\/+$/,'');
   const user   = document.getElementById('f-user').value.trim();
   const pass   = document.getElementById('f-pass').value.trim();
   const errEl  = document.getElementById('login-err');
   errEl.style.display = 'none';
-  if (!server) {
-    errEl.textContent = 'Selecione um servidor (S1 a S4).';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!user || !pass) {
-    errEl.textContent = 'Digite seu usuário e senha.';
-    errEl.style.display = 'block';
-    return;
-  }
+  if (!server||!user||!pass) { errEl.textContent='Preencha todos os campos.'; errEl.style.display='block'; return; }
   CFG = { server, user, pass, isM3U:false };
-  errEl.textContent = 'Conectando...'; errEl.style.display = 'block'; errEl.style.color = '#aaa';
+  errEl.textContent='Conectando...'; errEl.style.display='block'; errEl.style.color='#aaa';
   try {
     const url = `${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`;
     const r = await Promise.race([
-      fetch(url, {headers:{'User-Agent':TIZEN_UA}}).then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
-      new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+      fetch(url,{headers:{'User-Agent':TIZEN_UA}}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))
     ]);
     if (!Array.isArray(r)) throw new Error('Resposta inválida');
     localStorage.setItem('stv_cfg', JSON.stringify(CFG));
     hideLogin(); showApp(); selectSection('live');
-  } catch(e) { errEl.textContent = '❌ Erro ao conectar: '+e.message; errEl.style.color = '#ff6b6b'; }
+  } catch(e) { errEl.textContent='❌ Erro ao conectar: '+e.message; errEl.style.color='#ff6b6b'; }
 }
 
 async function doLoginM3U() {
@@ -1181,87 +1129,35 @@ const SECTION_META = {
   history: { icon:'🕓', label:'Histórico',         catAction:null,                   itemAction:null                },
 };
 
-// ═══════════════════════════════════════════════════
-// CACHE INTELIGENTE — lazy loading por categoria
-// ═══════════════════════════════════════════════════
-// Estrutura: itemCache['live:cat_123'] = [...canais]
-//            catCache['live'] = [...categorias]
-// Limpo apenas ao trocar servidor ou sair do app
-const itemCache = {};  // cache de itens por seção+categoria
-const catCache  = {};  // cache de categorias por seção
-let favsPreloaded = false; // controle de pré-carregamento de favoritos
-
-// Chave única para o cache
-function cacheKey(sec, catId) { return `${sec}:${catId}`; }
-
-// Pré-carrega favoritos assim que o app abre — prioridade máxima
-async function preloadFavorites() {
-  if (!favorites.length || favsPreloaded || CFG.isM3U) return;
-  favsPreloaded = true;
-  // Carrega todos os canais ao vivo em background para popular os favoritos
-  try {
-    const key = cacheKey('live','all');
-    if (!itemCache[key]) {
-      const raw = await apiGet('get_live_streams');
-      if (Array.isArray(raw) && raw.length) {
-        itemCache[key] = raw;
-        cacheLiveChannels(raw);
-        // Também cacheia por categoria
-        const cats = {};
-        raw.forEach(ch => {
-          const cid = String(ch.category_id||'');
-          if (cid) { if(!cats[cid]) cats[cid]=[]; cats[cid].push(ch); }
-        });
-        Object.entries(cats).forEach(([cid, items]) => { itemCache[cacheKey('live', cid)] = items; });
-      }
-    }
-  } catch(e) { /* silencioso — não bloqueia o app */ }
-}
-
-// Limpa todo o cache (ao trocar servidor / sair)
-function clearAllCache() {
-  Object.keys(itemCache).forEach(k => delete itemCache[k]);
-  Object.keys(catCache).forEach(k  => delete catCache[k]);
-  favsPreloaded = false;
-}
-
 async function selectSection(sec) {
-  if (SECTION && SECTION !== sec && document.getElementById('app').classList.contains('show')) {
+  if (SECTION&&SECTION!==sec&&document.getElementById('app').classList.contains('show')) {
     navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
   }
   SECTION  = sec;
   curCatId = 'all';
   curItemIdx = 0;
   document.getElementById('search-input').value = '';
-  document.querySelectorAll('.hp-item').forEach(el => el.classList.toggle('active', el.dataset.sec === sec));
+  document.querySelectorAll('.hp-item').forEach(el=>el.classList.toggle('active',el.dataset.sec===sec));
   const meta = SECTION_META[sec];
-  document.getElementById('cat-icon').textContent     = meta.icon;
-  document.getElementById('cat-heading').textContent  = meta.label;
+  document.getElementById('cat-icon').textContent    = meta.icon;
+  document.getElementById('cat-heading').textContent = meta.label;
   document.getElementById('content-title').textContent = meta.label;
 
-  if (sec === 'favs')    { showFavsSection(); return; }
-  if (sec === 'history') { showHistorySection(); return; }
+  if (sec==='favs')    { showFavsSection(); return; }
+  if (sec==='history') { showHistorySection(); return; }
 
+  // M3U mode
   if (CFG.isM3U) {
-    if (sec !== 'live') { toast('Modo M3U: apenas canais ao vivo disponíveis','err'); showM3USection(); return; }
+    if (sec!=='live') { toast('Modo M3U: apenas canais ao vivo disponíveis','err'); showM3USection(); return; }
     showM3USection(); return;
-  }
-
-  // ── Categorias: usa cache se disponível — nunca bloqueia
-  if (catCache[sec]) {
-    allCats = catCache[sec];
-    renderCats(allCats);
-    loadItems('all'); // sem await — não bloqueia
-    return;
   }
 
   setCatLoading();
   try {
     const raw = await apiGet(meta.catAction);
-    allCats = [{ category_id:'all', category_name:'Todos' }, ...(Array.isArray(raw) ? raw : [])];
-    catCache[sec] = allCats;
+    allCats = [{ category_id:'all', category_name:'Todos' }, ...(Array.isArray(raw)?raw:[])];
     renderCats(allCats);
-    loadItems('all'); // sem await — não bloqueia
+    await loadItems('all');
   } catch(e) { toast('Erro ao carregar categorias: '+e.message,'err'); setCatError(); }
 }
 
@@ -1277,19 +1173,18 @@ function renderCats(cats) {
   const list = document.getElementById('cat-list');
   list.innerHTML = '';
   cats.forEach(c => {
-    const el  = document.createElement('div');
-    const key = cacheKey(SECTION, c.category_id);
-    const cached = !!itemCache[key];
-    el.className = 'cat-item' + (c.category_id === curCatId ? ' active' : '');
-    el.dataset.id = c.category_id;
-    // Mostra ponto verde se já carregado, spinner se carregando, nada se não carregado
-    el.innerHTML = `<span class="cat-name">${c.category_name}</span>`
-      + (cached ? '<span class="cat-cached">●</span>' : '');
+    const el = document.createElement('div');
+    el.className = 'cat-item'+(c.category_id===curCatId?' active':'');
+    el.textContent = c.category_name;
+    el.dataset.id  = c.category_id;
     el.onclick = () => {
-      document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.cat-item').forEach(x=>x.classList.remove('active'));
       el.classList.add('active');
-      if (CFG.isM3U) filterM3UByGroup(c.category_name, c.category_id);
-      else loadItems(c.category_id);
+      if (CFG.isM3U) {
+        filterM3UByGroup(c.category_name, c.category_id);
+      } else {
+        loadItems(c.category_id);
+      }
     };
     list.appendChild(el);
   });
@@ -1297,52 +1192,24 @@ function renderCats(cats) {
 
 function filterM3UByGroup(groupName, catId) {
   curCatId = catId;
-  allItems = catId === 'all' ? m3uItems : m3uItems.filter(i => (i.category_name||'Geral') === groupName);
+  allItems = catId==='all' ? m3uItems : m3uItems.filter(i=>(i.category_name||'Geral')===groupName);
   visItems = allItems;
   document.getElementById('search-input').value = '';
   renderItems(visItems);
 }
 
 async function loadItems(catId) {
-  const key = cacheKey(SECTION, catId);
-
-  // ── HIT de cache — exibe instantaneamente sem requisição
-  if (itemCache[key]) {
-    curCatId  = catId;
-    curItemIdx = 0;
-    document.getElementById('search-input').value = '';
-    allItems = itemCache[key];
-    visItems = allItems;
-    renderItems(visItems);
-    return;
-  }
-
-  // ── MISS — busca no servidor e salva no cache
-  if (curCatId !== catId && allItems.length) {
-    navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
-  }
-  curCatId  = catId;
-  curItemIdx = 0;
+  if (curCatId!==catId&&allItems.length) navHistory.push({ section:SECTION, catId:curCatId, items:allItems.slice() });
+  curCatId = catId; curItemIdx = 0;
   document.getElementById('search-input').value = '';
   showGridLoading();
   const meta = SECTION_META[SECTION];
   try {
-    const extra = catId === 'all' ? '' : `&category_id=${catId}`;
+    const extra = catId==='all' ? '' : `&category_id=${catId}`;
     const raw   = await apiGet(meta.itemAction, extra);
-    allItems = Array.isArray(raw) ? raw : [];
-    itemCache[key] = allItems; // salva no cache
-    // Marca categoria como carregada com ponto verde
-    const catEl = document.querySelector(`.cat-item[data-id="${catId}"]`);
-    if (catEl && !catEl.querySelector('.cat-cached')) {
-      const dot = document.createElement('span');
-      dot.className = 'cat-cached';
-      dot.textContent = '●';
-      catEl.appendChild(dot);
-    }
+    allItems = Array.isArray(raw)?raw:[];
     visItems = allItems;
     renderItems(visItems);
-    // Se são canais ao vivo, cacheia por canal para os favoritos
-    if (SECTION === 'live' && allItems.length) cacheLiveChannels(allItems);
   } catch(e) { toast('Erro: '+e.message,'err'); showGridEmpty('❌','Erro ao carregar.'); }
 }
 
@@ -1994,7 +1861,6 @@ function hideTracksPanel() { document.getElementById('tracks-panel').classList.r
 // ═══════════════════════════════════════════════════
 // EPG — Full Panel
 // ═══════════════════════════════════════════════════
-let epgCache={};
 let epgFullCache={}; // stream_id -> full listings
 
 async function openEPGPanel() {
