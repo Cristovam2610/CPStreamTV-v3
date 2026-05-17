@@ -475,6 +475,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 .srv-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;}
 .srv-lbl{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;}
 .cat-cached{font-size:9px;color:var(--green);flex-shrink:0;opacity:.8;}
+
+/* ─── TMDB badge e tagline no modal ─── */
+.tmdb-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:rgba(1,180,228,.12);border:1px solid rgba(1,180,228,.25);color:#01b4e4;border-radius:6px;padding:3px 8px;margin-top:2px;}
+.vmod-tagline{font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;padding:0 2px;}
+
+/* ─── HISTORY POPUP ─── */
+#hist-popup-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px;}
+#hist-popup-overlay.show{display:flex;}
+.hist-popup{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:360px;max-width:100%;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.9);animation:hpopIn .18s ease;}
+@keyframes hpopIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.hist-popup-header{padding:18px 20px 16px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;}
+.hpop-img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--surface2);flex-shrink:0;}
+.hpop-noimg{width:56px;height:56px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.hpop-info{min-width:0;flex:1;}
+.hpop-title{font-size:15px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hpop-meta{font-size:12px;color:var(--muted);margin-top:4px;}
+.hpop-btn{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;font-size:15px;border:none;background:none;color:var(--text);width:100%;text-align:left;border-bottom:1px solid var(--border);transition:background .12s;font-family:'Source Sans 3',sans-serif;}
+.hpop-btn:last-child{border-bottom:none;}
+.hpop-btn:hover{background:rgba(255,255,255,.05);}
+.hpop-btn.danger{color:var(--accent2);}
+.hpop-btn.disabled{opacity:.38;cursor:default;pointer-events:none;}
+.hpop-icon{font-size:22px;width:30px;text-align:center;flex-shrink:0;line-height:1;}
+.hpop-text{display:flex;flex-direction:column;gap:2px;}
+.hpop-label{font-weight:600;font-size:14px;}
+.hpop-sub{font-size:12px;color:var(--muted);}
+.hpop-btn.danger .hpop-sub{color:rgba(255,107,107,.5);}
 </style>
 </head>
 <body>
@@ -1004,6 +1030,44 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
   </div>
 </div>
 
+<!-- HISTORY POPUP — abrir / continuar / excluir -->
+<div id="hist-popup-overlay" onclick="if(event.target===this)closeHistPopup()">
+  <div class="hist-popup">
+    <div class="hist-popup-header">
+      <img id="hpop-img" class="hpop-img" src="" style="display:none"
+           onerror="this.style.display='none';document.getElementById('hpop-noimg').style.display='flex'"/>
+      <div id="hpop-noimg" class="hpop-noimg">🎬</div>
+      <div class="hpop-info">
+        <div class="hpop-title" id="hpop-title"></div>
+        <div class="hpop-meta" id="hpop-meta"></div>
+      </div>
+    </div>
+    <div>
+      <button class="hpop-btn" onclick="histPlayFrom('start')">
+        <span class="hpop-icon">▶</span>
+        <span class="hpop-text">
+          <span class="hpop-label">Abrir do início</span>
+          <span class="hpop-sub">Começa do zero</span>
+        </span>
+      </button>
+      <button class="hpop-btn" id="hpop-resume-btn" onclick="histPlayFrom('resume')">
+        <span class="hpop-icon">⏱</span>
+        <span class="hpop-text">
+          <span class="hpop-label">Continuar de onde parou</span>
+          <span class="hpop-sub" id="hpop-resume-sub">Verificando...</span>
+        </span>
+      </button>
+      <button class="hpop-btn danger" onclick="histDelete()">
+        <span class="hpop-icon">🗑</span>
+        <span class="hpop-text">
+          <span class="hpop-label">Excluir do histórico</span>
+          <span class="hpop-sub">Remove este título da lista</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1319,7 +1383,7 @@ async function testServer(i){
   const pass=document.getElementById('srv-pass-'+i).value.trim();
   if(!url||!user||!pass){showSrvMsg('Preencha URL, usuário e senha.','err');return;}
   showSrvMsg('Testando S'+(i+1)+'...','ok');
-  try{const r=await Promise.race([fetch(`${url}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`,{headers:{'User-Agent':TIZEN_UA}}).then(r=>r.json()),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);showSrvMsg(Array.isArray(r)?'✅ S'+(i+1)+' OK — '+r.length+' categorias':'⚠ Resposta inesperada',Array.isArray(r)?'ok':'err');}catch(e){showSrvMsg('❌ S'+(i+1)+': '+e.message,'err');}
+  try{const r=await Promise.race([fetch(`${url}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`).then(r=>r.json()),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);showSrvMsg(Array.isArray(r)?'✅ S'+(i+1)+' OK — '+r.length+' categorias':'⚠ Resposta inesperada',Array.isArray(r)?'ok':'err');}catch(e){showSrvMsg('❌ S'+(i+1)+': '+e.message,'err');}
 }
 function showSrvMsg(msg,type){const el=document.getElementById('srv-msg');el.textContent=msg;el.className='adm-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',5000);}
 
@@ -1330,6 +1394,157 @@ function clearAllCache() {
   gsAllData = {}; gsLoaded = { live:false, movies:false, series:false };
   allCats=[]; allItems=[]; visItems=[];
   try { localStorage.removeItem('stv_ch_cache'); } catch(_){}
+}
+
+// ═══════════════════════════════════════════════════
+// TMDB — Sinopse, poster e metadados em PT-BR
+// ═══════════════════════════════════════════════════
+const TMDB_KEY  = '1bb9c0339f993737eba9fb4663d1c908';
+const TMDB_IMG  = 'https://image.tmdb.org/t/p/w500';
+const tmdbCache = {}; // evita chamadas repetidas
+
+// Limpa o título do item IPTV para buscar melhor no TMDB
+function cleanTitleForTMDB(raw) {
+  return raw
+    .replace(/\b(720p|1080p|2160p|4k|hdr|hevc|h264|x265|x264|bluray|dvdrip|webrip|hdtv|avc|remux)\b.*/gi, '')
+    .replace(/\s*[\[\(].*?[\]\)]/g, '')
+    .replace(/[._]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchTMDB(rawTitle, type) {
+  const cacheKey = type + ':' + rawTitle.toLowerCase();
+  if (cacheKey in tmdbCache) return tmdbCache[cacheKey];
+  try {
+    const kind  = type === 'series' ? 'tv' : 'movie';
+    const clean = cleanTitleForTMDB(rawTitle);
+    // Busca principal em PT-BR
+    const r = await fetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${TMDB_KEY}&query=${encodeURIComponent(clean)}&language=pt-BR&page=1`
+    );
+    const data = await r.json();
+    let result = data.results?.[0];
+    // Se não achou, tenta em inglês (títulos originais)
+    if (!result) {
+      const r2 = await fetch(
+        `https://api.themoviedb.org/3/search/${kind}?api_key=${TMDB_KEY}&query=${encodeURIComponent(clean)}&language=en-US&page=1`
+      );
+      const data2 = await r2.json();
+      result = data2.results?.[0];
+    }
+    if (!result) { tmdbCache[cacheKey]=null; return null; }
+    const enriched = {
+      tmdb_id:       result.id,
+      tmdb_title:    result.title || result.name || '',
+      tmdb_overview: result.overview || '',
+      tmdb_rating:   result.vote_average ? result.vote_average.toFixed(1) : '',
+      tmdb_year:     (result.release_date||result.first_air_date||'').slice(0,4),
+      tmdb_poster:   result.poster_path   ? TMDB_IMG + result.poster_path : '',
+      tmdb_backdrop: result.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + result.backdrop_path : '',
+      tmdb_genres_str: '',
+      tmdb_runtime:  '',
+      tmdb_tagline:  '',
+    };
+    // Detalhes: gêneros, duração, tagline (segunda chamada em background)
+    try {
+      const det = await fetch(
+        `https://api.themoviedb.org/3/${kind}/${result.id}?api_key=${TMDB_KEY}&language=pt-BR`
+      );
+      const d = await det.json();
+      enriched.tmdb_genres_str = (d.genres||[]).map(g=>g.name).join(' · ');
+      enriched.tmdb_runtime    = d.runtime ? d.runtime+' min' : (d.episode_run_time?.[0] ? d.episode_run_time[0]+' min/ep' : '');
+      enriched.tmdb_tagline    = d.tagline || '';
+      // Se overview PT-BR veio vazio do search, pegar dos details
+      if (!enriched.tmdb_overview && d.overview) enriched.tmdb_overview = d.overview;
+    } catch(_) {}
+    tmdbCache[cacheKey] = enriched;
+    return enriched;
+  } catch(e) { tmdbCache[cacheKey]=null; return null; }
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORY POPUP — abrir / continuar / excluir
+// ═══════════════════════════════════════════════════
+let histPopupItem = null;
+
+function openHistPopup(h) {
+  histPopupItem = h;
+  // Imagem
+  const img   = document.getElementById('hpop-img');
+  const noImg = document.getElementById('hpop-noimg');
+  if (h.icon) {
+    img.src = h.icon; img.style.display = 'block';
+    noImg.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    noImg.style.display = 'flex';
+    noImg.textContent = h.section === 'live' ? '📺' : '🎬';
+  }
+  document.getElementById('hpop-title').textContent = h.name;
+  const d = new Date(h.ts);
+  document.getElementById('hpop-meta').textContent =
+    h.section + ' · ' + d.toLocaleDateString('pt-BR') + ' ' +
+    d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  // Posição salva
+  const resumeBtn = document.getElementById('hpop-resume-btn');
+  const resumeSub = document.getElementById('hpop-resume-sub');
+  const pos = getSavedPos(h.id);
+  if (h.section === 'live') {
+    // Live não tem retomada de posição
+    resumeBtn.classList.add('disabled');
+    resumeSub.textContent = 'Não disponível para TV ao Vivo';
+  } else if (pos > 0) {
+    resumeBtn.classList.remove('disabled');
+    const mins = Math.floor(pos / 60);
+    const secs = Math.floor(pos % 60);
+    resumeSub.textContent = `Parou em ${mins}:${secs.toString().padStart(2,'0')}`;
+  } else {
+    resumeBtn.classList.add('disabled');
+    resumeSub.textContent = 'Sem posição salva';
+  }
+  document.getElementById('hist-popup-overlay').classList.add('show');
+}
+
+function closeHistPopup() {
+  document.getElementById('hist-popup-overlay').classList.remove('show');
+  histPopupItem = null;
+}
+
+function histPlayFrom(mode) {
+  const h = histPopupItem;
+  closeHistPopup();
+  if (!h) return;
+
+  // Live — sempre do início
+  if (h.section === 'live') {
+    const ch = getLiveChannelById(h.id) || { stream_id:h.id, name:h.name, stream_icon:h.icon };
+    playLive(ch); return;
+  }
+
+  // Apaga posição salva se usuário escolheu "do início"
+  if (mode === 'start') {
+    try { localStorage.removeItem(posKey(h.id)); } catch(_){}
+  }
+
+  // Reconstrói item mínimo para reprodução
+  const item = {
+    stream_id: h.id, series_id: h.id,
+    name: h.name, title: h.name,
+    stream_icon: h.icon, cover: h.icon,
+    container_extension: h.ext || 'mp4',
+  };
+
+  if (h.section === 'series') { openEpModal(item); }
+  else { playMovie(item); } // movies / vod
+}
+
+function histDelete() {
+  if (!histPopupItem) return;
+  const id = histPopupItem.id;
+  closeHistPopup();
+  removeFromHistory(id);
 }
 
 // ── Config
@@ -1571,7 +1786,7 @@ async function doLogin() {
   try {
     const url = `${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`;
     const r = await Promise.race([
-      fetch(url,{headers:{'User-Agent':TIZEN_UA}}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      fetch(url).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),12000))
     ]);
     if (!Array.isArray(r)) throw new Error('Resposta inválida');
@@ -1657,7 +1872,7 @@ async function apiGet(action, extra='') {
     try {
       const ctrl = new AbortController();
       const tid  = setTimeout(()=>ctrl.abort(), 10000);
-      const r    = await fetch(u, { signal:ctrl.signal, headers:{'User-Agent':TIZEN_UA} });
+      const r    = await fetch(u, { signal:ctrl.signal });
       clearTimeout(tid);
       if (!r.ok) continue;
       const data = await r.json();
@@ -2003,7 +2218,14 @@ function addToHistory(item, section) {
   if (!item) return;
   const sid=String(item.stream_id);
   watchHistory=watchHistory.filter(h=>String(h.id)!==sid);
-  watchHistory.unshift({ id:sid, name:item.name||item.title||'', icon:item.stream_icon||item.cover||'', section, ts:Date.now() });
+  watchHistory.unshift({
+    id: sid,
+    name: item.name||item.title||'',
+    icon: item.stream_icon||item.cover||'',
+    section,
+    ext: item.container_extension||'mp4',
+    ts: Date.now()
+  });
   saveHistory();
 }
 function isWatched(sid, section) { return watchHistory.some(h=>String(h.id)===String(sid)&&h.section===section); }
@@ -2025,6 +2247,7 @@ function showHistorySection() {
     card.className='ch-card';
     const d=new Date(h.ts);
     const dateStr=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const hasSavedPos = getSavedPos(h.id) > 0;
     card.innerHTML=`
       <div class="ch-logo-box">
         ${h.icon
@@ -2033,14 +2256,11 @@ function showHistorySection() {
       </div>
       <div style="min-width:0;flex:1;">
         <div class="ch-name">${esc(h.name)}</div>
-        <div class="ch-num">${h.section} · ${dateStr}</div>
+        <div class="ch-num">${h.section} · ${dateStr}${hasSavedPos?' · <span style="color:var(--blue)">⏱ salvo</span>':''}</div>
       </div>
       <button class="hist-remove-btn" title="Remover do histórico"
         onclick="event.stopPropagation();removeFromHistory('${String(h.id).replace(/'/g,"\\'")}')">✕</button>`;
-    card.onclick=()=>{
-      const ch=getLiveChannelById(h.id)||{ stream_id:h.id, name:h.name, stream_icon:h.icon };
-      if (h.section==='live') playLive(ch);
-    };
+    card.onclick = () => openHistPopup(h);
     grid.appendChild(card);
   });
 }
@@ -2169,23 +2389,73 @@ function clearChCache() { localStorage.removeItem('stv_ch_cache'); liveChannelCa
 // ═══════════════════════════════════════════════════
 // VOD MODAL
 // ═══════════════════════════════════════════════════
-function openVodModal(item, type) {
+async function openVodModal(item, type) {
   modalItem=item; modalType=type;
-  document.getElementById('vm-title').textContent=item.name||item.title||'';
-  const img=document.getElementById('vm-img');
-  const poster=item.stream_icon||item.cover||'';
+  const title = item.name||item.title||'';
+  document.getElementById('vm-title').textContent = title;
+
+  // Poster inicial do servidor IPTV
+  const img    = document.getElementById('vm-img');
+  const poster = item.stream_icon||item.cover||'';
   document.getElementById('vm-nopost').style.display='none';
   if (poster) { img.src=poster; img.style.display='block'; }
   else { img.style.display='none'; document.getElementById('vm-nopost').style.display='flex'; }
+
+  // Tags iniciais do servidor
   const tags=[];
-  if (item.year||item.releaseDate) tags.push(item.year||item.releaseDate);
-  if (item.rating) tags.push('⭐ '+item.rating);
-  if (item.genre||item.category_name) tags.push(item.genre||item.category_name);
-  if (item.duration||item.episode_run_time) tags.push('⏱ '+(item.duration||item.episode_run_time));
-  document.getElementById('vm-tags').innerHTML=tags.map(t=>`<span class="vmod-tag">${esc(String(t))}</span>`).join('');
-  document.getElementById('vm-plot').textContent=item.plot||item.plot_simple||item.description||'Sem descrição disponível.';
-  document.getElementById('vm-play-btn').textContent=type==='series'?'▶ Ver Episódios':'▶ Assistir';
+  if (item.year||item.releaseDate)           tags.push(item.year||item.releaseDate);
+  if (item.rating)                           tags.push('⭐ '+item.rating);
+  if (item.genre||item.category_name)        tags.push(item.genre||item.category_name);
+  if (item.duration||item.episode_run_time)  tags.push('⏱ '+(item.duration||item.episode_run_time));
+  document.getElementById('vm-tags').innerHTML = tags.map(t=>`<span class="vmod-tag">${esc(String(t))}</span>`).join('');
+
+  // Sinopse inicial
+  const plotEl = document.getElementById('vm-plot');
+  const localPlot = item.plot||item.plot_simple||item.description||'';
+  plotEl.textContent = localPlot || '🔍 Buscando sinopse...';
+
+  document.getElementById('vm-play-btn').textContent = type==='series' ? '▶ Ver Episódios' : '▶ Assistir';
   document.getElementById('vod-modal').classList.add('show');
+
+  // Enriquece com TMDB em background (não bloqueia a abertura do modal)
+  if (title && (type==='movie'||type==='series'||type==='vod')) {
+    try {
+      const tmdb = await fetchTMDB(title, type);
+      if (!tmdb) { if (!localPlot) plotEl.textContent='Sinopse não encontrada.'; return; }
+
+      // Poster TMDB — usa se o do servidor estiver vazio ou for padrão
+      if (tmdb.tmdb_poster && (!poster || poster.includes('no_cover'))) {
+        img.src = tmdb.tmdb_poster; img.style.display='block';
+        document.getElementById('vm-nopost').style.display='none';
+      }
+
+      // Sinopse em PT-BR
+      if (tmdb.tmdb_overview) plotEl.textContent = tmdb.tmdb_overview;
+      else if (!localPlot)    plotEl.textContent = 'Sinopse não encontrada.';
+
+      // Tagline
+      const tagsEl = document.getElementById('vm-tags');
+      if (tmdb.tmdb_tagline) {
+        const tl = document.createElement('div');
+        tl.className = 'vmod-tagline';
+        tl.textContent = '"' + tmdb.tmdb_tagline + '"';
+        tagsEl.after(tl);
+      }
+
+      // Tags enriquecidas
+      const richTags = [];
+      if (tmdb.tmdb_year)        richTags.push(tmdb.tmdb_year);
+      else if (item.year)        richTags.push(item.year);
+      if (tmdb.tmdb_rating)      richTags.push('⭐ ' + tmdb.tmdb_rating);
+      else if (item.rating)      richTags.push('⭐ ' + item.rating);
+      if (tmdb.tmdb_genres_str)  richTags.push(tmdb.tmdb_genres_str);
+      else if (item.genre)       richTags.push(item.genre);
+      if (tmdb.tmdb_runtime)     richTags.push('⏱ ' + tmdb.tmdb_runtime);
+
+      tagsEl.innerHTML = richTags.map(t=>`<span class="vmod-tag">${esc(String(t))}</span>`).join('') +
+        `<span class="tmdb-badge">🎬 TMDB</span>`;
+    } catch(_) { if (!localPlot) plotEl.textContent='Sinopse não encontrada.'; }
+  }
 }
 function closeVodModal() { document.getElementById('vod-modal').classList.remove('show'); }
 function playFromModal() {
@@ -2314,7 +2584,7 @@ function loadUrl(idx) {
 
   if (url.includes('.m3u8')&&Hls.isSupported()) {
     hls=new Hls({ enableWorker:false, lowLatencyMode:true, backBufferLength:0, maxBufferLength:30, startLevel:-1,
-      xhrSetup:xhr=>{ xhr.withCredentials=false; xhr.setRequestHeader('User-Agent',TIZEN_UA); }
+      xhrSetup:xhr=>{ xhr.withCredentials=false; } // User-Agent removido — bloqueado pelo browser por segurança
     });
     hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,(_,d)=>{
