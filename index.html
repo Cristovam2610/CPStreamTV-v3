@@ -23,7 +23,7 @@
   --surface2:#1a1a26;
   --border:#2a2a3e;
   --accent:#1e3ab8;
-  --accent2:hsl(4, 70%, 44%);
+  --accent2:#ff6b6b;
   --blue:#1e3ab8;
   --text:#f0f0f5;
   --muted:#6b6b8a;
@@ -1416,51 +1416,66 @@ function cleanTitleForTMDB(raw) {
 async function fetchTMDB(rawTitle, type) {
   const cacheKey = type + ':' + rawTitle.toLowerCase();
   if (cacheKey in tmdbCache) return tmdbCache[cacheKey];
-  try {
-    const kind  = type === 'series' ? 'tv' : 'movie';
-    const clean = cleanTitleForTMDB(rawTitle);
-    // Busca principal em PT-BR
-    const r = await fetch(
-      `https://api.themoviedb.org/3/search/${kind}?api_key=${TMDB_KEY}&query=${encodeURIComponent(clean)}&language=pt-BR&page=1`
-    );
-    const data = await r.json();
-    let result = data.results?.[0];
-    // Se não achou, tenta em inglês (títulos originais)
-    if (!result) {
-      const r2 = await fetch(
-        `https://api.themoviedb.org/3/search/${kind}?api_key=${TMDB_KEY}&query=${encodeURIComponent(clean)}&language=en-US&page=1`
-      );
-      const data2 = await r2.json();
-      result = data2.results?.[0];
-    }
-    if (!result) { tmdbCache[cacheKey]=null; return null; }
-    const enriched = {
-      tmdb_id:       result.id,
-      tmdb_title:    result.title || result.name || '',
-      tmdb_overview: result.overview || '',
-      tmdb_rating:   result.vote_average ? result.vote_average.toFixed(1) : '',
-      tmdb_year:     (result.release_date||result.first_air_date||'').slice(0,4),
-      tmdb_poster:   result.poster_path   ? TMDB_IMG + result.poster_path : '',
-      tmdb_backdrop: result.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + result.backdrop_path : '',
-      tmdb_genres_str: '',
-      tmdb_runtime:  '',
-      tmdb_tagline:  '',
-    };
-    // Detalhes: gêneros, duração, tagline (segunda chamada em background)
+
+  const kind  = (type === 'series') ? 'tv' : 'movie';
+  const clean = cleanTitleForTMDB(rawTitle);
+  if (!clean) { tmdbCache[cacheKey]=null; return null; }
+
+  // Estratégias de busca em ordem — tenta até encontrar
+  const searches = [
+    { q: clean,          lang: 'pt-BR' },
+    { q: clean,          lang: 'en-US' },
+    { q: clean.split(' ').slice(0,4).join(' '), lang: 'pt-BR' }, // primeiras 4 palavras
+    { q: clean.split(' ').slice(0,4).join(' '), lang: 'en-US' },
+    { q: clean.split(' ')[0],                   lang: 'en-US' }, // só a primeira palavra
+  ];
+
+  let result = null;
+  for (const s of searches) {
+    if (!s.q.trim()) continue;
     try {
-      const det = await fetch(
-        `https://api.themoviedb.org/3/${kind}/${result.id}?api_key=${TMDB_KEY}&language=pt-BR`
+      const r = await fetch(
+        `https://api.themoviedb.org/3/search/${kind}?api_key=${TMDB_KEY}&query=${encodeURIComponent(s.q)}&language=${s.lang}&page=1`
       );
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (data.results?.length) { result=data.results[0]; break; }
+    } catch(_) { continue; }
+  }
+
+  if (!result) { tmdbCache[cacheKey]=null; return null; }
+
+  const enriched = {
+    tmdb_id:        result.id,
+    tmdb_title:     result.title || result.name || '',
+    tmdb_overview:  result.overview || '',
+    tmdb_rating:    result.vote_average ? result.vote_average.toFixed(1) : '',
+    tmdb_year:      (result.release_date||result.first_air_date||'').slice(0,4),
+    tmdb_poster:    result.poster_path   ? TMDB_IMG + result.poster_path   : '',
+    tmdb_backdrop:  result.backdrop_path ? 'https://image.tmdb.org/t/p/w1280'+result.backdrop_path : '',
+    tmdb_genres_str:'',
+    tmdb_runtime:   '',
+    tmdb_tagline:   '',
+  };
+
+  // Detalhes adicionais em background (gêneros, duração, tagline)
+  try {
+    const det = await fetch(
+      `https://api.themoviedb.org/3/${kind}/${result.id}?api_key=${TMDB_KEY}&language=pt-BR`
+    );
+    if (det.ok) {
       const d = await det.json();
       enriched.tmdb_genres_str = (d.genres||[]).map(g=>g.name).join(' · ');
-      enriched.tmdb_runtime    = d.runtime ? d.runtime+' min' : (d.episode_run_time?.[0] ? d.episode_run_time[0]+' min/ep' : '');
+      enriched.tmdb_runtime    = d.runtime ? d.runtime+' min'
+        : (d.episode_run_time?.[0] ? d.episode_run_time[0]+' min/ep' : '');
       enriched.tmdb_tagline    = d.tagline || '';
-      // Se overview PT-BR veio vazio do search, pegar dos details
-      if (!enriched.tmdb_overview && d.overview) enriched.tmdb_overview = d.overview;
-    } catch(_) {}
-    tmdbCache[cacheKey] = enriched;
-    return enriched;
-  } catch(e) { tmdbCache[cacheKey]=null; return null; }
+      // Sinopse PT-BR dos detalhes (mais completa que do search)
+      if (d.overview) enriched.tmdb_overview = d.overview;
+    }
+  } catch(_){}
+
+  tmdbCache[cacheKey] = enriched;
+  return enriched;
 }
 
 // ═══════════════════════════════════════════════════
@@ -1577,6 +1592,7 @@ let zoomIdx = 0;
 
 // ── Favorites & History
 let favorites = [];
+let favMeta   = {}; // {stream_id: {name, icon}} — metadados dos favoritos
 let watchHistory = []; // [{id, name, icon, section, ts}]
 
 // ── VOD Modal
@@ -2106,19 +2122,49 @@ function cacheLiveChannels(channels) {
     channels.forEach(ch=>{ mini[String(ch.stream_id)]={ name:ch.name, stream_icon:ch.stream_icon||'', num:ch.num }; });
     localStorage.setItem('stv_ch_cache',JSON.stringify(mini));
   } catch(e){}
+  // Atualiza ícones dos favoritos com dados frescos do servidor
+  let changed=false;
+  favorites.forEach(sid=>{
+    const ch=liveChannelCache[sid];
+    if (ch && ch.stream_icon && (!favMeta[sid]?.icon || favMeta[sid].icon!==ch.stream_icon)) {
+      favMeta[sid]={ name:ch.name, icon:ch.stream_icon };
+      changed=true;
+    }
+  });
+  if (changed) saveFavs();
 }
 function getLiveChannelById(sid) {
   if (liveChannelCache[sid]) return liveChannelCache[sid];
-  try { const mini=JSON.parse(localStorage.getItem('stv_ch_cache')||'{}'); if(mini[sid]) return { stream_id:sid, name:mini[sid].name, stream_icon:mini[sid].stream_icon, num:mini[sid].num }; } catch(e){}
+  // Tenta mini-cache do localStorage
+  try {
+    const mini=JSON.parse(localStorage.getItem('stv_ch_cache')||'{}');
+    if (mini[sid]) return { stream_id:sid, name:mini[sid].name, stream_icon:mini[sid].stream_icon||'', num:mini[sid].num };
+  } catch(e){}
+  // Tenta favMeta como último recurso
+  if (favMeta[sid]) return { stream_id:sid, name:favMeta[sid].name, stream_icon:favMeta[sid].icon||'' };
   return null;
 }
-function loadFavs() { try { favorites=JSON.parse(localStorage.getItem('stv_favs')||'[]'); } catch { favorites=[]; } }
-function saveFavs() { localStorage.setItem('stv_favs',JSON.stringify(favorites)); }
+function loadFavs() {
+  try { favorites=JSON.parse(localStorage.getItem('stv_favs')||'[]'); } catch { favorites=[]; }
+  try { favMeta=JSON.parse(localStorage.getItem('stv_fav_meta')||'{}'); } catch { favMeta={}; }
+}
+function saveFavs() {
+  localStorage.setItem('stv_favs', JSON.stringify(favorites));
+  localStorage.setItem('stv_fav_meta', JSON.stringify(favMeta));
+}
 function isFav(sid) { return favorites.includes(String(sid)); }
 function toggleFav(ch) {
   const sid=String(ch.stream_id);
-  if (isFav(sid)) { favorites=favorites.filter(f=>f!==sid); toast('Removido dos favoritos'); }
-  else { favorites.push(sid); toast('★ '+ch.name+' adicionado aos favoritos!','ok'); }
+  if (isFav(sid)) {
+    favorites=favorites.filter(f=>f!==sid);
+    delete favMeta[sid];
+    toast('Removido dos favoritos');
+  } else {
+    favorites.push(sid);
+    // Salva metadados do canal junto com o favorito
+    favMeta[sid]={ name:ch.name||'', icon:ch.stream_icon||'' };
+    toast('★ '+ch.name+' adicionado aos favoritos!','ok');
+  }
   saveFavs();
   if (SECTION==='live') renderChannels(visItems);
 }
@@ -2197,13 +2243,24 @@ function showFavsSection() {
     return;
   }
 
-  const favChs=favorites.map(sid=>getLiveChannelById(sid)||{ stream_id:sid, name:'Canal '+sid, stream_icon:'' });
+  const resolveFavCh = sid => {
+    const live = getLiveChannelById(sid);
+    if (live && live.name && live.name !== 'Canal '+sid) return live;
+    const meta = favMeta[sid];
+    if (meta && meta.name) return { stream_id:sid, name:meta.name, stream_icon:meta.icon||'' };
+    return { stream_id:sid, name:'Canal '+sid, stream_icon:'' };
+  };
+  const favChs=favorites.map(sid=>resolveFavCh(sid));
   allItems=favChs; visItems=favChs;
   document.getElementById('item-count').textContent=favChs.length+' favoritos';
   renderChannels(favChs);
 }
 function exportFavs() {
-  const favChs=favorites.map(sid=>getLiveChannelById(sid)||{ stream_id:sid, name:'Canal '+sid, stream_icon:'' });
+  const favChs=favorites.map(sid=>{
+    const live=getLiveChannelById(sid); if(live)return live;
+    const meta=favMeta[sid]; if(meta&&meta.name)return{stream_id:sid,name:meta.name,stream_icon:meta.icon||''};
+    return{stream_id:sid,name:'Canal '+sid,stream_icon:''};
+  });
   const lines=['#EXTM3U',...favChs.map(ch=>`#EXTINF:-1 tvg-logo="${ch.stream_icon||''}" group-title="Favoritos",${ch.name}\n${liveUrls(ch.stream_id)[0]}`)];
   const blob=new Blob([lines.join('\n')],{type:'text/plain'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cpstream_favoritos.m3u'; a.click();
@@ -2520,8 +2577,23 @@ function closeEpModal() { document.getElementById('ep-modal').classList.remove('
 // URL BUILDERS
 // ═══════════════════════════════════════════════════
 function liveUrls(id) {
-  const {server:s,user:u,pass:p}=CFG; const b=s.replace(/\/+$/,''); const hs=b.replace(/^http:\/\//,'https://');
-  return [`${b}/live/${u}/${p}/${id}.m3u8`,`${b}/live/${u}/${p}/${id}.ts`,`${b}:80/live/${u}/${p}/${id}.m3u8`,`${b}:80/live/${u}/${p}/${id}.ts`,`${hs}/live/${u}/${p}/${id}.m3u8`,`${hs}/live/${u}/${p}/${id}.ts`];
+  const {server:s,user:u,pass:p}=CFG;
+  const b  = s.replace(/\/+$/,'');
+  const hs = b.replace(/^http:/,'https:');
+  const hp = b.replace(/^https:/,'http:');
+  return [
+    `${b}/live/${u}/${p}/${id}.m3u8`,          // padrão principal
+    `${b}/live/${u}/${p}/${id}.ts`,             // fallback TS
+    `${hs}/live/${u}/${p}/${id}.m3u8`,          // forçar HTTPS
+    `${hs}/live/${u}/${p}/${id}.ts`,
+    `${hp}/live/${u}/${p}/${id}.m3u8`,          // forçar HTTP (alguns servidores só HTTP)
+    `${hp}/live/${u}/${p}/${id}.ts`,
+    `${b}:80/live/${u}/${p}/${id}.m3u8`,        // porta 80 explícita
+    `${b}:80/live/${u}/${p}/${id}.ts`,
+    `${b}:8080/live/${u}/${p}/${id}.m3u8`,      // porta 8080 (comum em IPTV)
+    `${b}:8080/live/${u}/${p}/${id}.ts`,
+    `${b}/live/${u}/${p}/${id}`,                // sem extensão
+  ];
 }
 function movieUrls(id,ext) {
   const {server:s,user:u,pass:p}=CFG; const b=s.replace(/\/+$/,''); const hs=b.replace(/^http:\/\//,'https://');
