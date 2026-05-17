@@ -1488,14 +1488,11 @@ function openHistPopup(h) {
   // Imagem
   const img   = document.getElementById('hpop-img');
   const noImg = document.getElementById('hpop-noimg');
-  if (h.icon) {
-    img.src = h.icon; img.style.display = 'block';
-    noImg.style.display = 'none';
-  } else {
-    img.style.display = 'none';
-    noImg.style.display = 'flex';
-    noImg.textContent = h.section === 'live' ? '📺' : '🎬';
-  }
+  img.onerror = null;
+  img.src = h.icon || genChannelAvatar(h.name);
+  img.onerror = () => { img.src = genChannelAvatar(h.name); img.onerror=null; };
+  img.style.display = 'block';
+  noImg.style.display = 'none';
   document.getElementById('hpop-title').textContent = h.name;
   const d = new Date(h.ts);
   document.getElementById('hpop-meta').textContent =
@@ -2049,6 +2046,53 @@ function renderItems(list) {
   else renderVOD(list);
 }
 
+// ═══════════════════════════════════════════════════
+// AVATAR DE CANAL — fallback quando logo falha
+// ═══════════════════════════════════════════════════
+const AVATAR_COLORS = [
+  '#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261',
+  '#4361ee','#7b2d8b','#2d6a4f','#d62828','#1d3557',
+  '#8338ec','#3a86ff','#fb5607','#06d6a0','#ef476f'
+];
+
+function getChannelInitials(name) {
+  const clean = name
+    .replace(/\b(HD|SD|FHD|4K|UHD|Plus|\+|Brasil|Brazil|TV|Canal|Channel)\b/gi, '')
+    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (!words.length) return name.slice(0,2).toUpperCase();
+  if (words.length === 1) return words[0].slice(0,2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function getChannelColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++)
+    hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function genChannelAvatar(name) {
+  const initials = getChannelInitials(name || '?');
+  const color    = getChannelColor(name || '?');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+    <rect width="52" height="52" rx="8" fill="${color}"/>
+    <text x="26" y="35" text-anchor="middle"
+      font-family="Arial,Helvetica,sans-serif"
+      font-weight="800" font-size="${initials.length>1?'20':'26'}"
+      fill="rgba(255,255,255,0.95)">${initials}</text>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+// Chamado pelo onerror das imagens de canal
+function chLogoErr(img) {
+  const name = img.dataset.name || img.alt || '?';
+  img.onerror = null;                     // evita loop infinito
+  img.src     = genChannelAvatar(name);
+  img.style.objectFit = 'contain';
+}
+
 function renderChannels(list) {
   document.getElementById('ch-grid-wrap').style.display='block';
   document.getElementById('vod-grid-wrap').style.display='none';
@@ -2062,7 +2106,12 @@ function renderChannels(list) {
     card.className='ch-card'+(isFav(ch.stream_id)?' fav':'')+(watched?' watched':'');
     card.innerHTML=`
       <div class="ch-logo-box">
-        ${ch.stream_icon?`<img src="${ch.stream_icon}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=no-logo>📺</span>'">`:'<span class="no-logo">📺</span>'}
+        <img src="${ch.stream_icon || genChannelAvatar(ch.name)}"
+             loading="lazy"
+             alt="${esc(ch.name)}"
+             data-name="${esc(ch.name)}"
+             onerror="chLogoErr(this)"
+             style="width:100%;height:100%;object-fit:contain;">
       </div>
       <div>
         <div class="ch-name">${esc(ch.name)}</div>
@@ -2307,9 +2356,12 @@ function showHistorySection() {
     const hasSavedPos = getSavedPos(h.id) > 0;
     card.innerHTML=`
       <div class="ch-logo-box">
-        ${h.icon
-          ? `<img src="${h.icon}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=no-logo>🎬</span>'">`
-          : `<span class="no-logo">${h.section==='live'?'📺':'🎬'}</span>`}
+        <img src="${h.icon || genChannelAvatar(h.name)}"
+             loading="lazy"
+             alt="${esc(h.name)}"
+             data-name="${esc(h.name)}"
+             onerror="chLogoErr(this)"
+             style="width:100%;height:100%;object-fit:contain;">
       </div>
       <div style="min-width:0;flex:1;">
         <div class="ch-name">${esc(h.name)}</div>
@@ -2396,7 +2448,7 @@ function runGlobalSearch(q) {
     el.className='gs-item';
     const icon=item._sec==='live'?'📺':item._sec==='series'?'🎞️':'🎬';
     el.innerHTML=`
-      <div class="gs-item-icon">${item.stream_icon||item.cover?`<img src="${item.stream_icon||item.cover}" loading="lazy" onerror="this.parentElement.innerHTML='${icon}'">`:`${icon}`}</div>
+      <div class="gs-item-icon"><img src="${item.stream_icon||item.cover||genChannelAvatar(item.name||'?')}" loading="lazy" data-name="${esc(item.name||'')}" onerror="chLogoErr(this)" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
       <div style="flex:1;min-width:0">
         <div class="gs-item-name">${esc(item.name||item.title||'')}</div>
         <div class="gs-item-meta">${item.year||''} ${item.rating?'⭐'+item.rating:''}</div>
@@ -2773,7 +2825,10 @@ function setPlayerInfo(title,sub,thumb,isLive) {
   const subEl=document.getElementById('pl-sub');
   subEl.innerHTML=isLive?'<span class="live-badge">● AO VIVO</span>':(sub?esc(sub):'');
   const img=document.getElementById('pl-thumb');
-  if (thumb) { img.src=thumb; img.style.display='block'; } else img.style.display='none';
+  const avatarSrc = genChannelAvatar(title||'?');
+  img.src = thumb || avatarSrc;
+  img.style.display = 'block';
+  img.onerror = () => { img.src = avatarSrc; img.onerror=null; };
   document.getElementById('pl-pos').textContent=!isVOD?`${curItemIdx+1} / ${visItems.length}`:'';
 }
 function showPlayerSpinner(on) { document.getElementById('pl-spinner').style.display=on?'block':'none'; }
@@ -2935,7 +2990,10 @@ async function openEPGPanel() {
   if (playerItem) {
     document.getElementById('epg-ch-name').textContent=playerItem.name||'';
     const logo=document.getElementById('epg-ch-logo');
-    logo.src=playerItem.stream_icon||''; logo.style.display=playerItem.stream_icon?'block':'none';
+    const avatarSrc = genChannelAvatar(playerItem.name||'?');
+    logo.src = playerItem.stream_icon || avatarSrc;
+    logo.style.display = 'block';
+    logo.onerror = () => { logo.src = avatarSrc; logo.onerror=null; };
   }
   const epgList=document.getElementById('epg-list');
   const loading=document.getElementById('epg-loading');
