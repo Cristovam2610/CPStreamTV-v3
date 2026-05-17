@@ -22,9 +22,9 @@
   --surface:#12121a;
   --surface2:#1a1a26;
   --border:#2a2a3e;
-  --accent:#e63946;
+  --accent:#1e3ab8;
   --accent2:#ff6b6b;
-  --blue:#4361ee;
+  --blue:#1e3ab8;
   --text:#f0f0f5;
   --muted:#6b6b8a;
   --gold:#ffd60a;
@@ -38,7 +38,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #boot{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transition:opacity .5s;}
 #boot.hide{opacity:0;pointer-events:none;}
 .boot-logo{font-family:'Oswald',sans-serif;font-size:80px;font-weight:700;letter-spacing:6px;color:var(--text);}
-.boot-logo em,.hp-logo em,.login-card h1 em{color:#4361ee;font-style:normal;}
+.boot-logo em,.hp-logo em,.login-card h1 em{color:#1e3ab8;font-style:normal;}
 .boot-bar{width:300px;height:3px;background:#1e1e2e;border-radius:3px;overflow:hidden;}
 .boot-fill{height:100%;background:var(--accent);width:0%;transition:width .4s ease;}
 .boot-msg{font-size:18px;color:var(--muted);letter-spacing:1px;}
@@ -1488,12 +1488,14 @@ function openHistPopup(h) {
   // Imagem
   const img   = document.getElementById('hpop-img');
   const noImg = document.getElementById('hpop-noimg');
-  img.onerror = null;
-  img.src = resolveChannelLogo(h.name, h.icon||'');
-  img.dataset.name = h.name;
-  img.onerror = () => chLogoErr(img);
-  img.style.display = 'block';
-  noImg.style.display = 'none';
+  if (h.icon) {
+    img.src = h.icon; img.style.display = 'block';
+    noImg.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    noImg.style.display = 'flex';
+    noImg.textContent = h.section === 'live' ? '📺' : '🎬';
+  }
   document.getElementById('hpop-title').textContent = h.name;
   const d = new Date(h.ts);
   document.getElementById('hpop-meta').textContent =
@@ -2047,193 +2049,6 @@ function renderItems(list) {
   else renderVOD(list);
 }
 
-// ═══════════════════════════════════════════════════
-// AVATAR DE CANAL — fallback quando logo falha
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
-// LOGOS DE CANAIS — banco de dados com fallback avatar
-// ═══════════════════════════════════════════════════
-const _BR  = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/brazil/';
-const _US  = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-states/';
-const _UK  = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-kingdom/';
-const _INT = 'https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/international/';
-
-// Padrão mais específico primeiro → genérico por último
-const CHANNEL_LOGO_DB = [
-  // ── Abertos Brasileiros ───────────────────────────────
-  { p:/globo\s*news/i,              u:_BR+'globonews.png' },
-  { p:/\bglob[oa]\b/i,              u:_BR+'globo.png' },
-  { p:/\bsbt\b/i,                   u:_BR+'sbt.png' },
-  { p:/\bband(eirantes)?\b/i,       u:_BR+'band.png' },
-  { p:/record\s*news/i,             u:_BR+'record-news.png' },
-  { p:/\brecord\b/i,                u:_BR+'record-tv.png' },
-  { p:/\bredetv\b/i,                u:_BR+'redetv.png' },
-  { p:/tv\s*cultura|cultura\s*fm/i, u:_BR+'tv-cultura.png' },
-  { p:/jovem\s*pan\s*news/i,        u:_BR+'jovem-pan-news.png' },
-  { p:/jovem\s*pan/i,               u:_BR+'jovem-pan.png' },
-  { p:/cnn\s*brasil/i,              u:_BR+'cnn-brasil.png' },
-  { p:/\bcultura\b/i,               u:_BR+'tv-cultura.png' },
-
-  // ── Pay TV — Esportes ─────────────────────────────────
-  { p:/sportv\s*3/i,                u:_BR+'sportv-3.png' },
-  { p:/sportv\s*2/i,                u:_BR+'sportv-2.png' },
-  { p:/\bsportv\b/i,                u:_BR+'sportv.png' },
-  { p:/premiere/i,                  u:_BR+'premiere.png' },
-  { p:/espn\s*extra/i,              u:_BR+'espn-extra.png' },
-  { p:/espn\s*4/i,                  u:_BR+'espn-4.png' },
-  { p:/espn\s*3/i,                  u:_BR+'espn-3.png' },
-  { p:/espn\s*2/i,                  u:_BR+'espn-2.png' },
-  { p:/\bespn\b/i,                  u:_BR+'espn.png' },
-  { p:/fox\s*sports\s*2/i,          u:_BR+'fox-sports-2.png' },
-  { p:/fox\s*sports/i,              u:_BR+'fox-sports.png' },
-  { p:/\bbandsports\b/i,            u:_BR+'bandsports.png' },
-  { p:/combate/i,                   u:_BR+'combate.png' },
-
-  // ── Pay TV — Cinema ───────────────────────────────────
-  { p:/telecine\s*action/i,         u:_BR+'telecine-action.png' },
-  { p:/telecine\s*fun/i,            u:_BR+'telecine-fun.png' },
-  { p:/telecine\s*pipoca/i,         u:_BR+'telecine-pipoca.png' },
-  { p:/telecine\s*premium/i,        u:_BR+'telecine-premium.png' },
-  { p:/telecine\s*touch/i,          u:_BR+'telecine-touch.png' },
-  { p:/telecine/i,                  u:_BR+'telecine.png' },
-  { p:/hbo\s*signature/i,           u:_BR+'hbo-signature.png' },
-  { p:/hbo\s*family/i,              u:_BR+'hbo-family.png' },
-  { p:/hbo\s*hits/i,                u:_BR+'hbo-hits.png' },
-  { p:/hbo\s*plus/i,                u:_BR+'hbo-plus.png' },
-  { p:/hbo\s*2/i,                   u:_BR+'hbo-2.png' },
-  { p:/\bhbo\b/i,                   u:_BR+'hbo.png' },
-  { p:/\bhbo\s*max\b|\bmax\b/i,     u:_INT+'max.png' },
-  { p:/\btnt\b/i,                   u:_BR+'tnt.png' },
-  { p:/\bwarner\b/i,                u:_BR+'warner.png' },
-  { p:/paramount\s*network/i,       u:_BR+'paramount-network.png' },
-  { p:/paramount/i,                 u:_BR+'paramount-channel.png' },
-  { p:/\bspace\b/i,                 u:_BR+'space.png' },
-  { p:/\baxn\b/i,                   u:_BR+'axn.png' },
-  { p:/\bsyfy\b/i,                  u:_BR+'syfy.png' },
-  { p:/\bfx\b/i,                    u:_BR+'fx.png' },
-  { p:/\bstar\s*(plus|\+|one|channel)?\b/i, u:_INT+'star.png' },
-
-  // ── Pay TV — Variedades ───────────────────────────────
-  { p:/\bgnt\b/i,                   u:_BR+'gnt.png' },
-  { p:/multishow/i,                 u:_BR+'multishow.png' },
-  { p:/\bviva\b/i,                  u:_BR+'viva.png' },
-  { p:/canal\s*brasil/i,            u:_BR+'canal-brasil.png' },
-  { p:/canal\s*off|\boff\b/i,       u:_BR+'off.png' },
-  { p:/\buniversal\b/i,             u:_BR+'universal-channel.png' },
-  { p:/comedy\s*central/i,          u:_BR+'comedy-central.png' },
-  { p:/\bmtv\b/i,                   u:_BR+'mtv-brasil.png' },
-  { p:/\bvh1\b/i,                   u:_BR+'vh1.png' },
-  { p:/lifetime/i,                  u:_BR+'lifetime.png' },
-  { p:/\ba\s*[&e]+\b/i,             u:_BR+'a-e.png' },
-  { p:/film\s*[&e]\s*arts/i,        u:_BR+'film-arts.png' },
-  { p:/\btruetv\b/i,                u:_US+'truetv.png' },
-  { p:/\btv\s*series?\b/i,          u:_BR+'tvseries.png' },
-
-  // ── Infantil ──────────────────────────────────────────
-  { p:/disney\s*junior/i,           u:_BR+'disney-junior.png' },
-  { p:/disney\s*xd/i,               u:_BR+'disney-xd.png' },
-  { p:/disney/i,                    u:_BR+'disney-channel.png' },
-  { p:/cartoon\s*network/i,         u:_BR+'cartoon-network.png' },
-  { p:/\bboomerang\b/i,             u:_BR+'boomerang.png' },
-  { p:/discovery\s*kids/i,          u:_BR+'discovery-kids.png' },
-  { p:/\bnickelodeon\b/i,           u:_BR+'nickelodeon.png' },
-  { p:/nick\s*jr/i,                 u:_BR+'nick-jr.png' },
-  { p:/\btooncast\b/i,              u:_BR+'tooncast.png' },
-
-  // ── Documentários ─────────────────────────────────────
-  { p:/nat\s*geo\s*wild/i,          u:_BR+'nat-geo-wild.png' },
-  { p:/nat(ional)?\s*geo(graphic)?/i,u:_BR+'nat-geo.png' },
-  { p:/\bhistory\s*2\b/i,           u:_BR+'history-2.png' },
-  { p:/\bhistory\b/i,               u:_BR+'history.png' },
-  { p:/discovery\s*home/i,          u:_BR+'discovery-home.png' },
-  { p:/discovery\s*science/i,       u:_BR+'discovery-science.png' },
-  { p:/discovery\s*turbo/i,         u:_BR+'discovery-turbo.png' },
-  { p:/discovery\s*theater/i,       u:_BR+'discovery-theater.png' },
-  { p:/\bdiscovery\b/i,             u:_BR+'discovery-channel.png' },
-  { p:/animal\s*planet/i,           u:_BR+'animal-planet.png' },
-  { p:/\btlc\b/i,                   u:_BR+'tlc.png' },
-  { p:/\bbiography\b/i,             u:_US+'biography.png' },
-
-  // ── Notícias ──────────────────────────────────────────
-  { p:/\bcnn\b/i,                   u:_US+'cnn.png' },
-  { p:/\bbbc\s*(world|news)?\b/i,   u:_UK+'bbc-news.png' },
-  { p:/al\s*jazeera/i,              u:_INT+'al-jazeera.png' },
-  { p:/\beuronews\b/i,              u:_INT+'euronews.png' },
-  { p:/\bnbc\s*news\b/i,            u:_US+'nbc-news.png' },
-
-  // ── Música ────────────────────────────────────────────
-  { p:/\bvevo\b/i,                  u:_INT+'vevo.png' },
-  { p:/\bmezzo\b/i,                 u:_INT+'mezzo.png' },
-];
-
-function lookupChannelLogo(name) {
-  for (const { p, u } of CHANNEL_LOGO_DB) {
-    if (p.test(name)) return u;
-  }
-  return null;
-}
-
-// ─── Avatar de fallback (quando nenhum logo está disponível) ───
-const AVATAR_COLORS = [
-  '#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261',
-  '#4361ee','#7b2d8b','#2d6a4f','#d62828','#1d3557',
-  '#8338ec','#3a86ff','#fb5607','#06d6a0','#ef476f'
-];
-
-function getChannelInitials(name) {
-  const clean = name
-    .replace(/\b(HD|SD|FHD|4K|UHD|Plus|\+|Brasil|Brazil|TV|Canal|Channel|Rede|Net)\b/gi,'')
-    .replace(/[_\-\.]/g,' ').trim();
-  const words = clean.split(/\s+/).filter(Boolean);
-  if (!words.length) return (name||'?').slice(0,2).toUpperCase();
-  if (words.length === 1) return words[0].slice(0,2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
-
-function getChannelColor(name) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h*31 + name.charCodeAt(i)) & 0xffffffff;
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-function genChannelAvatar(name) {
-  const initials = getChannelInitials(name||'?');
-  const color    = getChannelColor(name||'?');
-  const fs       = initials.length > 1 ? 20 : 26;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-    <rect width="52" height="52" rx="8" fill="${color}"/>
-    <text x="26" y="35" text-anchor="middle"
-      font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="${fs}"
-      fill="rgba(255,255,255,.95)">${initials}</text></svg>`;
-  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-}
-
-// Resolve o melhor logo disponível para um canal
-function resolveChannelLogo(name, serverLogo) {
-  if (serverLogo && serverLogo.trim()) return serverLogo; // servidor tem logo → usa
-  return lookupChannelLogo(name) || genChannelAvatar(name);
-}
-
-// Chamado pelo onerror das <img> de canal — tenta DB, depois avatar
-function chLogoErr(img) {
-  const name  = img.dataset.name || img.alt || '?';
-  const tried = img.dataset.tried || '';
-
-  if (!tried.includes('db')) {
-    const known = lookupChannelLogo(name);
-    if (known && img.src !== known) {
-      img.dataset.tried = tried + 'db';
-      img.onerror = () => chLogoErr(img);
-      img.src = known;
-      return;
-    }
-  }
-  // Avatar como último recurso — nunca falha
-  img.onerror = null;
-  img.src = genChannelAvatar(name);
-  img.style.objectFit = 'contain';
-}
-
 function renderChannels(list) {
   document.getElementById('ch-grid-wrap').style.display='block';
   document.getElementById('vod-grid-wrap').style.display='none';
@@ -2247,12 +2062,7 @@ function renderChannels(list) {
     card.className='ch-card'+(isFav(ch.stream_id)?' fav':'')+(watched?' watched':'');
     card.innerHTML=`
       <div class="ch-logo-box">
-        <img src="${resolveChannelLogo(ch.name, ch.stream_icon)}"
-             loading="lazy"
-             alt="${esc(ch.name)}"
-             data-name="${esc(ch.name)}"
-             onerror="chLogoErr(this)"
-             style="width:100%;height:100%;object-fit:contain;">
+        ${ch.stream_icon?`<img src="${ch.stream_icon}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=no-logo>📺</span>'">`:'<span class="no-logo">📺</span>'}
       </div>
       <div>
         <div class="ch-name">${esc(ch.name)}</div>
@@ -2497,12 +2307,9 @@ function showHistorySection() {
     const hasSavedPos = getSavedPos(h.id) > 0;
     card.innerHTML=`
       <div class="ch-logo-box">
-        <img src="${resolveChannelLogo(h.name, h.icon)}"
-             loading="lazy"
-             alt="${esc(h.name)}"
-             data-name="${esc(h.name)}"
-             onerror="chLogoErr(this)"
-             style="width:100%;height:100%;object-fit:contain;">
+        ${h.icon
+          ? `<img src="${h.icon}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=no-logo>🎬</span>'">`
+          : `<span class="no-logo">${h.section==='live'?'📺':'🎬'}</span>`}
       </div>
       <div style="min-width:0;flex:1;">
         <div class="ch-name">${esc(h.name)}</div>
@@ -2589,7 +2396,7 @@ function runGlobalSearch(q) {
     el.className='gs-item';
     const icon=item._sec==='live'?'📺':item._sec==='series'?'🎞️':'🎬';
     el.innerHTML=`
-      <div class="gs-item-icon"><img src="${item.stream_icon||item.cover||genChannelAvatar(item.name||'?')}" loading="lazy" data-name="${esc(item.name||'')}" onerror="chLogoErr(this)" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
+      <div class="gs-item-icon">${item.stream_icon||item.cover?`<img src="${item.stream_icon||item.cover}" loading="lazy" onerror="this.parentElement.innerHTML='${icon}'">`:`${icon}`}</div>
       <div style="flex:1;min-width:0">
         <div class="gs-item-name">${esc(item.name||item.title||'')}</div>
         <div class="gs-item-meta">${item.year||''} ${item.rating?'⭐'+item.rating:''}</div>
@@ -2966,10 +2773,7 @@ function setPlayerInfo(title,sub,thumb,isLive) {
   const subEl=document.getElementById('pl-sub');
   subEl.innerHTML=isLive?'<span class="live-badge">● AO VIVO</span>':(sub?esc(sub):'');
   const img=document.getElementById('pl-thumb');
-  const avatarSrc = genChannelAvatar(title||'?');
-  img.src = resolveChannelLogo(title||'?', thumb||'');
-  img.style.display = 'block';
-  img.onerror = () => { img.src = genChannelAvatar(title||'?'); img.onerror=null; };
+  if (thumb) { img.src=thumb; img.style.display='block'; } else img.style.display='none';
   document.getElementById('pl-pos').textContent=!isVOD?`${curItemIdx+1} / ${visItems.length}`:'';
 }
 function showPlayerSpinner(on) { document.getElementById('pl-spinner').style.display=on?'block':'none'; }
@@ -3131,10 +2935,7 @@ async function openEPGPanel() {
   if (playerItem) {
     document.getElementById('epg-ch-name').textContent=playerItem.name||'';
     const logo=document.getElementById('epg-ch-logo');
-    const avatarSrc = genChannelAvatar(playerItem.name||'?');
-    logo.src = resolveChannelLogo(playerItem.name||'?', playerItem.stream_icon||'');
-    logo.style.display = 'block';
-    logo.onerror = () => { logo.src = genChannelAvatar(playerItem.name||'?'); logo.onerror=null; };
+    logo.src=playerItem.stream_icon||''; logo.style.display=playerItem.stream_icon?'block':'none';
   }
   const epgList=document.getElementById('epg-list');
   const loading=document.getElementById('epg-loading');
