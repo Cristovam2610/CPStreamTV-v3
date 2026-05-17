@@ -22,8 +22,8 @@
   --surface:#12121a;
   --surface2:#1a1a26;
   --border:#2a2a3e;
-  --accent:#e63946;
-  --accent2:#ff6b6b;
+  --accent:#06a354;
+  --accent2:#098109;
   --blue:#4361ee;
   --text:#f0f0f5;
   --muted:#6b6b8a;
@@ -2394,67 +2394,80 @@ async function openVodModal(item, type) {
   const title = item.name||item.title||'';
   document.getElementById('vm-title').textContent = title;
 
-  // Poster inicial do servidor IPTV
+  // Remove tagline anterior se existir
+  const oldTl = document.querySelector('.vmod-tagline');
+  if (oldTl) oldTl.remove();
+
+  // Poster do servidor IPTV
   const img    = document.getElementById('vm-img');
   const poster = item.stream_icon||item.cover||'';
   document.getElementById('vm-nopost').style.display='none';
   if (poster) { img.src=poster; img.style.display='block'; }
   else { img.style.display='none'; document.getElementById('vm-nopost').style.display='flex'; }
 
-  // Tags iniciais do servidor
-  const tags=[];
-  if (item.year||item.releaseDate)           tags.push(item.year||item.releaseDate);
-  if (item.rating)                           tags.push('⭐ '+item.rating);
-  if (item.genre||item.category_name)        tags.push(item.genre||item.category_name);
-  if (item.duration||item.episode_run_time)  tags.push('⏱ '+(item.duration||item.episode_run_time));
-  document.getElementById('vm-tags').innerHTML = tags.map(t=>`<span class="vmod-tag">${esc(String(t))}</span>`).join('');
+  // Tags iniciais
+  const tagsEl = document.getElementById('vm-tags');
+  const buildTags = (t=[],tmdbBadge=false) => {
+    tagsEl.innerHTML = t.map(x=>`<span class="vmod-tag">${esc(String(x))}</span>`).join('') +
+      (tmdbBadge ? '<span class="tmdb-badge">🎬 TMDB</span>' : '');
+  };
+  const initTags=[];
+  if (item.year||item.releaseDate)         initTags.push(item.year||item.releaseDate);
+  if (item.rating)                         initTags.push('⭐ '+item.rating);
+  if (item.genre||item.category_name)      initTags.push(item.genre||item.category_name);
+  if (item.duration||item.episode_run_time)initTags.push('⏱ '+(item.duration||item.episode_run_time));
+  buildTags(initTags);
 
-  // Sinopse inicial
-  const plotEl = document.getElementById('vm-plot');
-  const localPlot = item.plot||item.plot_simple||item.description||'';
-  plotEl.textContent = localPlot || '🔍 Buscando sinopse...';
+  // Sinopse local (servidor IPTV)
+  const plotEl   = document.getElementById('vm-plot');
+  const localPlot= item.plot||item.plot_simple||item.description||'';
+  plotEl.textContent = localPlot || '🔍 Buscando sinopse no TMDB...';
 
-  document.getElementById('vm-play-btn').textContent = type==='series' ? '▶ Ver Episódios' : '▶ Assistir';
+  document.getElementById('vm-play-btn').textContent = type==='series'?'▶ Ver Episódios':'▶ Assistir';
   document.getElementById('vod-modal').classList.add('show');
 
-  // Enriquece com TMDB em background (não bloqueia a abertura do modal)
-  if (title && (type==='movie'||type==='series'||type==='vod')) {
-    try {
-      const tmdb = await fetchTMDB(title, type);
-      if (!tmdb) { if (!localPlot) plotEl.textContent='Sinopse não encontrada.'; return; }
+  // Só busca TMDB para filmes/séries/vod, não para live
+  if (!title || type==='live') return;
 
-      // Poster TMDB — usa se o do servidor estiver vazio ou for padrão
-      if (tmdb.tmdb_poster && (!poster || poster.includes('no_cover'))) {
-        img.src = tmdb.tmdb_poster; img.style.display='block';
-        document.getElementById('vm-nopost').style.display='none';
-      }
+  try {
+    const tmdb = await fetchTMDB(title, type);
 
-      // Sinopse em PT-BR
-      if (tmdb.tmdb_overview) plotEl.textContent = tmdb.tmdb_overview;
-      else if (!localPlot)    plotEl.textContent = 'Sinopse não encontrada.';
+    if (!tmdb) {
+      if (!localPlot) plotEl.textContent='Sinopse não encontrada.';
+      return;
+    }
 
-      // Tagline
-      const tagsEl = document.getElementById('vm-tags');
-      if (tmdb.tmdb_tagline) {
-        const tl = document.createElement('div');
-        tl.className = 'vmod-tagline';
-        tl.textContent = '"' + tmdb.tmdb_tagline + '"';
-        tagsEl.after(tl);
-      }
+    // Poster TMDB — só substitui se o do servidor estiver vazio ou for URL quebrada
+    if (tmdb.tmdb_poster && !poster) {
+      img.src=tmdb.tmdb_poster; img.style.display='block';
+      document.getElementById('vm-nopost').style.display='none';
+    }
 
-      // Tags enriquecidas
-      const richTags = [];
-      if (tmdb.tmdb_year)        richTags.push(tmdb.tmdb_year);
-      else if (item.year)        richTags.push(item.year);
-      if (tmdb.tmdb_rating)      richTags.push('⭐ ' + tmdb.tmdb_rating);
-      else if (item.rating)      richTags.push('⭐ ' + item.rating);
-      if (tmdb.tmdb_genres_str)  richTags.push(tmdb.tmdb_genres_str);
-      else if (item.genre)       richTags.push(item.genre);
-      if (tmdb.tmdb_runtime)     richTags.push('⏱ ' + tmdb.tmdb_runtime);
+    // Sinopse PT-BR do TMDB
+    if (tmdb.tmdb_overview) plotEl.textContent = tmdb.tmdb_overview;
+    else if (!localPlot)    plotEl.textContent = 'Sinopse não encontrada.';
 
-      tagsEl.innerHTML = richTags.map(t=>`<span class="vmod-tag">${esc(String(t))}</span>`).join('') +
-        `<span class="tmdb-badge">🎬 TMDB</span>`;
-    } catch(_) { if (!localPlot) plotEl.textContent='Sinopse não encontrada.'; }
+    // Tagline abaixo das tags
+    if (tmdb.tmdb_tagline) {
+      const tl = document.createElement('div');
+      tl.className='vmod-tagline';
+      tl.textContent='"'+tmdb.tmdb_tagline+'"';
+      tagsEl.after(tl);
+    }
+
+    // Tags enriquecidas com TMDB
+    const richTags=[];
+    const year = tmdb.tmdb_year || item.year || item.releaseDate;
+    if (year)                richTags.push(year);
+    const rating = tmdb.tmdb_rating || item.rating;
+    if (rating)              richTags.push('⭐ '+rating);
+    if (tmdb.tmdb_genres_str)richTags.push(tmdb.tmdb_genres_str);
+    else if (item.genre)     richTags.push(item.genre);
+    if (tmdb.tmdb_runtime)   richTags.push('⏱ '+tmdb.tmdb_runtime);
+    buildTags(richTags, true);
+
+  } catch(e) {
+    if (!localPlot) plotEl.textContent='Sinopse não encontrada.';
   }
 }
 function closeVodModal() { document.getElementById('vod-modal').classList.remove('show'); }
@@ -2583,9 +2596,41 @@ function loadUrl(idx) {
   v.muted=isMuted;
 
   if (url.includes('.m3u8')&&Hls.isSupported()) {
-    hls=new Hls({ enableWorker:false, lowLatencyMode:true, backBufferLength:0, maxBufferLength:30, startLevel:-1,
-      xhrSetup:xhr=>{ xhr.withCredentials=false; } // User-Agent removido — bloqueado pelo browser por segurança
-    });
+    // Configuração separada para Live vs VOD — resolve travamentos
+    const hlsCfg = isVOD ? {
+      // VOD — buffer grande, sem restrição de latência
+      enableWorker:          true,
+      lowLatencyMode:        false,
+      backBufferLength:      120,
+      maxBufferLength:       120,
+      maxMaxBufferLength:    240,
+      startLevel:            -1,
+      abrEwmaDefaultEstimate: 2000000,  // estimativa inicial 2Mbps
+      manifestLoadingTimeOut: 15000,
+      manifestLoadingMaxRetry: 4,
+      levelLoadingTimeOut:    15000,
+      fragLoadingTimeOut:     25000,
+      fragLoadingMaxRetry:    6,
+      fragLoadingRetryDelay:  500,
+      xhrSetup: xhr=>{ xhr.withCredentials=false; }
+    } : {
+      // Live — buffer moderado, recuperação rápida de erro
+      enableWorker:          true,
+      lowLatencyMode:        false,   // false = mais estável, menos rebuffering
+      backBufferLength:      60,
+      maxBufferLength:       60,
+      maxMaxBufferLength:    120,
+      startLevel:            -1,
+      abrEwmaDefaultEstimate: 1500000, // estimativa inicial 1.5Mbps
+      manifestLoadingTimeOut: 12000,
+      manifestLoadingMaxRetry: 4,
+      levelLoadingTimeOut:    12000,
+      fragLoadingTimeOut:     20000,
+      fragLoadingMaxRetry:    6,
+      fragLoadingRetryDelay:  1000,
+      xhrSetup: xhr=>{ xhr.withCredentials=false; }
+    };
+    hls=new Hls(hlsCfg);
     hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.MANIFEST_PARSED,(_,d)=>{
       v.play().catch(()=>{});
@@ -2595,11 +2640,29 @@ function loadUrl(idx) {
       populateQualityLevels(d.levels);
     });
     hls.on(Hls.Events.ERROR,(_,d)=>{
-      if (!d.fatal) return;
-      if (d.type===Hls.ErrorTypes.MEDIA_ERROR&&mediaErrCount<2) { mediaErrCount++; hls.recoverMediaError(); }
-      else { hls.destroy(); hls=null; loadUrl(playerUrlIdx+1); }
+      if (!d.fatal) {
+        // Tenta recuperar erros não-fatais de media sem destruir
+        if (d.type===Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+        return;
+      }
+      if (d.type===Hls.ErrorTypes.MEDIA_ERROR&&mediaErrCount<3) {
+        mediaErrCount++;
+        setTimeout(()=>hls.recoverMediaError(), 500);
+      } else { hls.destroy(); hls=null; loadUrl(playerUrlIdx+1); }
     });
-    hls.on(Hls.Events.FRAG_BUFFERED,()=>showPlayerSpinner(false));
+    // Detecta stall e tenta recuperar
+    let stallTimer=null;
+    hls.on(Hls.Events.FRAG_BUFFERED,()=>{ showPlayerSpinner(false); clearTimeout(stallTimer); });
+    hls.on(Hls.Events.FRAG_LOAD_PROGRESS,()=>{ clearTimeout(stallTimer); });
+    const v2=document.getElementById('player-video');
+    v2.onwaiting=()=>{
+      showPlayerSpinner(true);
+      stallTimer=setTimeout(()=>{
+        if (v2.paused||v2.ended) return;
+        if (hls) { hls.startLoad(); } // força carregamento se parado
+      }, 8000);
+    };
+    v2.onplaying=()=>{ showPlayerSpinner(false); clearTimeout(stallTimer); };
     // Track info (audio + subtitles)
     hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,d)=>populateAudioTracks(d.audioTracks));
     hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED,(_,d)=>populateSubtitleTracks(d.subtitleTracks));
@@ -2607,13 +2670,12 @@ function loadUrl(idx) {
     v.src=url; v.load();
     const pp=v.play();
     if (pp) pp.then(()=>{ showPlayerSpinner(false); isPlaying=true; document.getElementById('btn-pp').textContent='⏸'; }).catch(()=>loadUrl(playerUrlIdx+1));
-    // Populate native audio/subtitle tracks after metadata
     v.addEventListener('loadedmetadata', populateNativeTracks, {once:true});
     clearQualityLevels();
+    v.onwaiting=()=>showPlayerSpinner(true);
+    v.onplaying=()=>showPlayerSpinner(false);
   }
 
-  v.onwaiting=()=>showPlayerSpinner(true);
-  v.onplaying=()=>showPlayerSpinner(false);
   v.ontimeupdate=()=>{
     if (v.buffered.length) {
       const pct=(v.buffered.end(v.buffered.length-1)/(v.duration||1))*100;
@@ -2798,7 +2860,6 @@ async function openEPGPanel() {
   if (!curEPGStreamId) return;
   const panel=document.getElementById('epg-panel');
   panel.classList.add('show');
-  // Channel info
   if (playerItem) {
     document.getElementById('epg-ch-name').textContent=playerItem.name||'';
     const logo=document.getElementById('epg-ch-logo');
@@ -2806,14 +2867,39 @@ async function openEPGPanel() {
   }
   const epgList=document.getElementById('epg-list');
   const loading=document.getElementById('epg-loading');
-  loading.style.display='flex'; epgList.querySelectorAll('.epg-row').forEach(e=>e.remove());
+  loading.style.display='flex'; epgList.innerHTML='';
   try {
-    const data=await apiGet('get_short_epg',`&stream_id=${curEPGStreamId}&limit=24`);
-    const listings=data?.epg_listings||[];
+    // Tenta get_short_epg primeiro
+    let listings=[];
+    try {
+      const data=await apiGet('get_short_epg',`&stream_id=${curEPGStreamId}&limit=24`);
+      listings=data?.epg_listings||[];
+    } catch(_){}
+
+    // Fallback: get_simple_data_table (alguns servidores usam este endpoint)
+    if (!listings.length) {
+      try {
+        const data2=await apiGet('get_simple_data_table',`&stream_id=${curEPGStreamId}`);
+        listings=data2?.epg_listings||[];
+      } catch(_){}
+    }
+
     loading.style.display='none';
-    if (!listings.length) { epgList.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);">Sem dados de programação disponíveis.</div>'; return; }
+    if (!listings.length) {
+      epgList.innerHTML=`
+        <div style="padding:40px 24px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center;">
+          <div style="font-size:40px;opacity:.3;">📅</div>
+          <div style="font-size:16px;">Sem dados de programação disponíveis</div>
+          <div style="font-size:13px;opacity:.6;max-width:320px;line-height:1.6;">
+            Este canal não tem EPG configurado no servidor.<br>
+            Nem todos os canais possuem grade de programação.
+          </div>
+        </div>`;
+      return;
+    }
     const now=Date.now()/1000;
     const decode=s=>{ try { return atob(s); } catch { return s; } };
+    let firstNow=true;
     listings.forEach(item=>{
       const start=parseInt(item.start_timestamp);
       const end  =parseInt(item.stop_timestamp);
@@ -2822,21 +2908,29 @@ async function openEPGPanel() {
       const row  =document.createElement('div');
       row.className='epg-row'+(isNow?' now':'');
       const dur  =Math.round((end-start)/60);
+      const desc = item.description ? decode(item.description) : '';
+      const titleDecoded = decode(item.title||'');
       row.innerHTML=`
         <div class="epg-time">${fmtTime24(start)}</div>
         <div class="epg-prog">
-          <div class="epg-prog-title">${esc(decode(item.title||''))}</div>
-          ${item.description?`<div class="epg-prog-desc">${esc(decode(item.description))}</div>`:''}
+          <div class="epg-prog-title">${esc(titleDecoded)}</div>
+          ${desc?`<div class="epg-prog-desc">${esc(desc)}</div>`:''}
           ${isNow?`<div class="epg-progress-bar"><div class="epg-progress-fill" style="width:${pct}%"></div></div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           ${isNow?'<span class="epg-now-badge">▶ AGORA</span>':''}
           <div class="epg-dur">${dur}min</div>
         </div>`;
-      if (isNow) { epgList.insertBefore(row,epgList.firstChild); row.scrollIntoView({block:'start',behavior:'smooth'}); }
-      else epgList.appendChild(row);
+      if (isNow && firstNow) {
+        firstNow=false;
+        epgList.insertBefore(row,epgList.firstChild);
+        setTimeout(()=>row.scrollIntoView({block:'start',behavior:'smooth'}),100);
+      } else { epgList.appendChild(row); }
     });
-  } catch(e) { loading.style.display='none'; epgList.innerHTML=`<div style="padding:40px;text-align:center;color:var(--accent2);">❌ Erro ao carregar programação.</div>`; }
+  } catch(e) {
+    loading.style.display='none';
+    epgList.innerHTML=`<div style="padding:40px;text-align:center;color:var(--accent2);">❌ Erro ao carregar programação: ${esc(e.message)}</div>`;
+  }
 }
 function closeEPGPanel() { document.getElementById('epg-panel').classList.remove('show'); }
 
