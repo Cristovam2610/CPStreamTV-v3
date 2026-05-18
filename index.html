@@ -2524,21 +2524,26 @@ function saveFavs() {
 }
 function isFav(sid) { return favorites.includes(String(sid)); }
 function toggleFav(ch) {
-  const sid=String(ch.stream_id);
+  const sid=String(ch.stream_id||ch.series_id||ch.vod_id);
+  if (!sid||sid==='undefined') return;
   if (isFav(sid)) {
     favorites=favorites.filter(f=>f!==sid);
     delete favMeta[sid];
     toast('Removido dos favoritos');
   } else {
     favorites.push(sid);
-    // Salva metadados do canal junto com o favorito
-    favMeta[sid]={ name:ch.name||'', icon:ch.stream_icon||'' };
-    toast('★ '+ch.name+' adicionado aos favoritos!','ok');
+    favMeta[sid]={
+      name: ch.name||ch.title||'',
+      icon: ch.stream_icon||ch.cover||'',
+      type: isVOD ? (SECTION==='series'?'series':'movie') : 'live',
+      ext:  ch.container_extension||''
+    };
+    toast('★ '+(ch.name||ch.title||'')+' adicionado aos favoritos!','ok');
   }
   saveFavs();
-  if (SECTION==='live') renderChannels(visItems);
+  if (SECTION==='live'||SECTION==='favs') renderItems(visItems);
 }
-function toggleFavCurrent() { if(playerItem&&!isVOD){ toggleFav(playerItem); updateFavBtn(); } }
+function toggleFavCurrent() { if(playerItem){ toggleFav(playerItem); updateFavBtn(); } }
 function updateFavBtn() {
   const btn=document.getElementById('fav-btn');
   const on=playerItem&&!isVOD&&isFav(playerItem.stream_id);
@@ -2548,13 +2553,12 @@ function updateFavBtn() {
 function showFavsSection() {
   document.getElementById('cat-list').innerHTML='';
   document.getElementById('content-title').textContent='⭐ Favoritos';
-  const ch$=document.getElementById('ch-grid-wrap');
-  const vod$=document.getElementById('vod-grid-wrap');
-  ch$.style.display='block'; vod$.style.display='none';
   const grid=document.getElementById('ch-grid');
   grid.innerHTML='';
 
   if (!favorites.length) {
+    document.getElementById('ch-grid-wrap').style.display='block';
+    document.getElementById('vod-grid-wrap').style.display='none';
     document.getElementById('item-count').textContent='0 favoritos';
     grid.innerHTML=`
       <div class="welcome-screen">
@@ -2569,71 +2573,64 @@ function showFavsSection() {
         </div>
         <div class="welcome-divider"></div>
         <div class="welcome-cards">
-          <div class="welcome-card">
-            <div class="welcome-card-icon">📺</div>
-            <div class="welcome-card-title">TV Ao Vivo</div>
-            <div class="welcome-card-desc">Canais organizados por categoria. Clique em uma categoria para carregar os canais e depois selecione o que deseja assistir.</div>
-          </div>
-          <div class="welcome-card">
-            <div class="welcome-card-icon">🎬</div>
-            <div class="welcome-card-title">Filmes &amp; Séries</div>
-            <div class="welcome-card-desc">Navegue por gênero (Ação, Romance, Suspense…). Clique no título para ver detalhes e escolha <b>Assistir</b> para reproduzir.</div>
-          </div>
-          <div class="welcome-card">
-            <div class="welcome-card-icon">⭐</div>
-            <div class="welcome-card-title">Favoritos — Esta tela</div>
-            <div class="welcome-card-desc">Adicione canais favoritos pressionando <b>F</b> no player ou clicando em <b>☆ Favorito</b>. Esta tela abre sempre ao iniciar o app.</div>
-          </div>
-          <div class="welcome-card">
-            <div class="welcome-card-icon">🕓</div>
-            <div class="welcome-card-title">Histórico</div>
-            <div class="welcome-card-desc">Tudo que você <b>assistir</b> fica salvo automaticamente. Remova títulos indesejados individualmente com o <b>✕</b> no card.</div>
-          </div>
-          <div class="welcome-card">
-            <div class="welcome-card-icon">🔍</div>
-            <div class="welcome-card-title">Busca Global</div>
-            <div class="welcome-card-desc">Pressione <b>G</b> a qualquer momento para buscar em canais, filmes e séries ao mesmo tempo.</div>
-          </div>
-          <div class="welcome-card">
-            <div class="welcome-card-icon">⌨️</div>
-            <div class="welcome-card-title">Atalhos</div>
-            <div class="welcome-card-desc"><b>M</b> = Mudo &nbsp;·&nbsp; <b>F</b> = Favoritar &nbsp;·&nbsp; <b>Z</b> = Zoom &nbsp;·&nbsp; <b>Q</b> = Qualidade<br><b>E</b> = EPG &nbsp;·&nbsp; <b>◄ ►</b> = ±30 segundos</div>
-          </div>
+          <div class="welcome-card"><div class="welcome-card-icon">📺</div><div class="welcome-card-title">TV Ao Vivo</div><div class="welcome-card-desc">Canais organizados por categoria. Clique em uma categoria para carregar os canais.</div></div>
+          <div class="welcome-card"><div class="welcome-card-icon">🎬</div><div class="welcome-card-title">Filmes &amp; Séries</div><div class="welcome-card-desc">Navegue por gênero. Clique no título para ver detalhes e escolha <b>Assistir</b> para reproduzir.</div></div>
+          <div class="welcome-card"><div class="welcome-card-icon">⭐</div><div class="welcome-card-title">Favoritos — Esta tela</div><div class="welcome-card-desc">Pressione <b>F</b> no player para favoritar canais, filmes e séries. Esta tela abre sempre ao iniciar.</div></div>
+          <div class="welcome-card"><div class="welcome-card-icon">🕓</div><div class="welcome-card-title">Histórico</div><div class="welcome-card-desc">Tudo que você <b>assistir</b> fica salvo automaticamente. Remova itens com o <b>✕</b> no card.</div></div>
+          <div class="welcome-card"><div class="welcome-card-icon">🔍</div><div class="welcome-card-title">Busca Global</div><div class="welcome-card-desc">Pressione <b>G</b> para buscar em canais, filmes e séries ao mesmo tempo.</div></div>
+          <div class="welcome-card"><div class="welcome-card-icon">⌨️</div><div class="welcome-card-title">Atalhos</div><div class="welcome-card-desc"><b>M</b>=Mudo · <b>F</b>=Favoritar · <b>Z</b>=Zoom · <b>Q</b>=Qualidade · <b>E</b>=EPG · <b>◄►</b>=±30s</div></div>
         </div>
         <div class="welcome-cta">
           <div class="welcome-cta-title">⭐ Por que usar Favoritos?</div>
-          <div class="welcome-cta-desc">
-            Seus favoritos ficam sempre aqui — acesso instantâneo sem navegar pelas categorias.<br>
-            O app carrega <b>só o que você realmente precisa</b>, mantendo tudo ágil e sem desperdício de memória.<br>
-            <span style="margin-top:8px;display:inline-block;opacity:.6;font-size:12px;">Abra um canal ao vivo e pressione <b>F</b> para começar.</span>
-          </div>
+          <div class="welcome-cta-desc">Acesso instantâneo sem navegar pelas categorias.<br>Pressione <b>F</b> durante a reprodução de qualquer canal, filme ou série.</div>
         </div>
-        <div class="welcome-version">CPStreamTV v3.0 — Player IPTV para Smart TV &amp; PC</div>
+        <div class="welcome-version">CPStreamTV v4.0 — Player IPTV para Smart TV &amp; PC</div>
       </div>`;
     return;
   }
 
-  const resolveFavCh = sid => {
-    const live = getLiveChannelById(sid);
-    if (live && live.name && live.name !== 'Canal '+sid) return live;
-    const meta = favMeta[sid];
-    if (meta && meta.name) return { stream_id:sid, name:meta.name, stream_icon:meta.icon||'' };
-    return { stream_id:sid, name:'Canal '+sid, stream_icon:'' };
-  };
-  const favChs=favorites.map(sid=>resolveFavCh(sid));
-  allItems=favChs; visItems=favChs;
-  document.getElementById('item-count').textContent=favChs.length+' favoritos';
-  renderChannels(favChs);
-}
-function exportFavs() {
-  const favChs=favorites.map(sid=>{
-    const live=getLiveChannelById(sid); if(live)return live;
-    const meta=favMeta[sid]; if(meta&&meta.name)return{stream_id:sid,name:meta.name,stream_icon:meta.icon||''};
-    return{stream_id:sid,name:'Canal '+sid,stream_icon:''};
-  });
-  const lines=['#EXTM3U',...favChs.map(ch=>`#EXTINF:-1 tvg-logo="${ch.stream_icon||''}" group-title="Favoritos",${ch.name}\n${liveUrls(ch.stream_id)[0]}`)];
-  const blob=new Blob([lines.join('\n')],{type:'text/plain'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cpstream_favoritos.m3u'; a.click();
+  // Separa por tipo
+  const liveFavs  = favorites.filter(sid=>!favMeta[sid]?.type||favMeta[sid]?.type==='live');
+  const movieFavs = favorites.filter(sid=>favMeta[sid]?.type==='movie');
+  const seriesFavs= favorites.filter(sid=>favMeta[sid]?.type==='series');
+  document.getElementById('item-count').textContent=favorites.length+' favoritos';
+
+  // Renderiza live channels
+  if (liveFavs.length) {
+    document.getElementById('ch-grid-wrap').style.display='block';
+    document.getElementById('vod-grid-wrap').style.display='none';
+    const liveChs=liveFavs.map(sid=>{
+      const live=getLiveChannelById(sid);
+      if (live&&live.name&&live.name!=='Canal '+sid) return live;
+      const meta=favMeta[sid];
+      if (meta&&meta.name) return {stream_id:sid,name:meta.name,stream_icon:meta.icon||''};
+      return {stream_id:sid,name:'Canal '+sid,stream_icon:''};
+    });
+    allItems=liveChs; visItems=liveChs;
+    renderChannels(liveChs);
+  }
+
+  // Renderiza VOD (filmes + séries)
+  if (movieFavs.length||seriesFavs.length) {
+    document.getElementById('ch-grid-wrap').style.display= liveFavs.length?'block':'none';
+    document.getElementById('vod-grid-wrap').style.display='block';
+    const vodGrid=document.getElementById('vod-grid');
+    if (!liveFavs.length) vodGrid.innerHTML='';
+    [...movieFavs,...seriesFavs].forEach(sid=>{
+      const meta=favMeta[sid]||{};
+      const card=document.createElement('div');
+      card.className='vod-card';
+      const icon=meta.type==='series'?'📺':'🎬';
+      card.innerHTML=meta.icon
+        ?`<img class="vod-poster" src="${meta.icon}" loading="lazy" onerror="this.outerHTML='<div class=vod-no-poster>${icon}<span>${esc(meta.name||'')}</span></div>'">
+           <div class="vod-info"><div class="vod-title">${esc(meta.name||'')}</div><div class="vod-meta">${meta.type==='series'?'Série':'Filme'}</div></div>`
+        :`<div class="vod-no-poster">${icon}<span>${esc(meta.name||'')}</span></div>
+          <div class="vod-info"><div class="vod-title">${esc(meta.name||'')}</div><div class="vod-meta">${meta.type==='series'?'Série':'Filme'}</div></div>`;
+      const item={stream_id:sid,name:meta.name||'',stream_icon:meta.icon||'',container_extension:meta.ext||'mp4'};
+      card.onclick=()=>{ meta.type==='series'?openEpModal(item):playMovie(item); };
+      vodGrid.appendChild(card);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -3109,8 +3106,26 @@ function loadUrl(idx) {
     };
     v2.onplaying=()=>{ showPlayerSpinner(false); clearTimeout(stallTimer); };
     // Track info (audio + subtitles)
-    hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,d)=>populateAudioTracks(d.audioTracks));
-    hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED,(_,d)=>populateSubtitleTracks(d.subtitleTracks));
+   hls.on(Hls.Events.AUDIO_TRACKS_UPDATED,(_,d)=>{
+      if (d.audioTracks&&d.audioTracks.length>1) populateAudioTracks(d.audioTracks);
+    });
+    hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED,(_,d)=>{
+      if (d.subtitleTracks&&d.subtitleTracks.length>0) populateSubtitleTracks(d.subtitleTracks);
+    });
+    // Retry após manifesto e após primeiro fragmento — alguns streams só revelam faixas depois
+    hls.on(Hls.Events.MANIFEST_PARSED,(_,d)=>{
+      setTimeout(()=>{
+        if (hls&&hls.audioTracks&&hls.audioTracks.length>1)
+          populateAudioTracks(hls.audioTracks);
+        if (hls&&hls.subtitleTracks&&hls.subtitleTracks.length>0)
+          populateSubtitleTracks(hls.subtitleTracks);
+      }, 1500);
+    });
+    hls.on(Hls.Events.FRAG_LOADED,(_,d)=>{
+      if (d.frag&&d.frag.sn===0&&hls&&hls.audioTracks&&hls.audioTracks.length>1) {
+        populateAudioTracks(hls.audioTracks);
+      }
+    });
   } else {
     v.src=url; v.load();
     const pp=v.play();
@@ -3219,7 +3234,14 @@ function populateAudioTracks(tracks) {
   tracks.forEach((t,i)=>{
     const el=document.createElement('div');
     el.className='track-item'+(hls&&hls.audioTrack===i?' active':'');
-    el.textContent=(t.name||t.lang||`Faixa ${i+1}`);
+  // Tenta identificar PT-BR vs Original
+    const lang = (t.lang||t.language||'').toLowerCase();
+    const name = t.name||'';
+    let label = name||lang||`Faixa ${i+1}`;
+    if (/^pt|por|portuguese|brazil/i.test(lang)||/dub|pt.?br|portugu/i.test(name)) label='🇧🇷 Português (Dublado)';
+    else if (/^en|eng|english/i.test(lang)||/orig|eng/i.test(name)) label='🇺🇸 Original (Inglês)';
+    else if (/^es|spa|spanish/i.test(lang)) label='🇪🇸 Espanhol';
+    el.textContent=label;
     el.onclick=()=>{
       if (!hls) return;
       hls.audioTrack=i;
