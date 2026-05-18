@@ -22,9 +22,9 @@
   --surface:#12121a;
   --surface2:#1a1a26;
   --border:#2a2a3e;
-  --accent:#303bd6fb;
+  --accent:#2436d3;
   --accent2:#ff6b6b;
-  --blue:#303bd6fb;
+  --blue:#2436d3;
   --text:#f0f0f5;
   --muted:#6b6b8a;
   --gold:#ffd60a;
@@ -38,7 +38,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #boot{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transition:opacity .5s;}
 #boot.hide{opacity:0;pointer-events:none;}
 .boot-logo{font-family:'Oswald',sans-serif;font-size:80px;font-weight:700;letter-spacing:6px;color:var(--text);}
-.boot-logo em,.hp-logo em,.login-card h1 em{color:#303bd6fb;font-style:normal;}
+.boot-logo em,.hp-logo em,.login-card h1 em{color:#2436d3;font-style:normal;}
 .boot-bar{width:300px;height:3px;background:#1e1e2e;border-radius:3px;overflow:hidden;}
 .boot-fill{height:100%;background:var(--accent);width:0%;transition:width .4s ease;}
 .boot-msg{font-size:18px;color:var(--muted);letter-spacing:1px;}
@@ -263,18 +263,41 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 #epg-loading{text-align:center;padding:60px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:12px;}
 
 /* ─── GLOBAL SEARCH MODAL ─── */
-#gsearch-modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.9);display:none;flex-direction:column;align-items:center;padding:60px 20px 20px;}
+#gsearch-modal{
+  position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.9);
+  display:none;flex-direction:column;align-items:center;
+  padding:40px 20px 20px;
+  overflow:hidden; /* evita scroll no modal em si */
+}
 #gsearch-modal.show{display:flex;}
-#gsearch-wrap{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px;}
-#gsearch-input-wrap{display:flex;gap:12px;align-items:center;}
+#gsearch-wrap{
+  width:100%;max-width:720px;
+  display:flex;flex-direction:column;gap:12px;
+  flex:1;          /* ocupa toda a altura disponível */
+  min-height:0;    /* essencial: permite que o flex child shrink */
+  overflow:hidden;
+}
+#gsearch-input-wrap{display:flex;gap:12px;align-items:center;flex-shrink:0;}
 #gsearch-input{flex:1;padding:18px 24px;background:var(--surface);border:2px solid var(--border);border-radius:16px;color:var(--text);font-size:20px;font-family:'Source Sans 3',sans-serif;outline:none;transition:border-color .2s;}
 #gsearch-input:focus{border-color:var(--accent);}
-#gsearch-close{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 20px;color:var(--muted);font-size:16px;cursor:pointer;white-space:nowrap;}
-#gsearch-filters{display:flex;gap:8px;flex-wrap:wrap;}
+#gsearch-close{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 20px;color:var(--muted);font-size:16px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+#gsearch-filters{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;}
 .gs-filter{padding:7px 16px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;cursor:pointer;transition:all .15s;}
 .gs-filter.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-#gsearch-results{flex:1;overflow-y:auto;width:100%;max-width:720px;}
-#gsearch-body{display:flex;flex-direction:column;gap:6px;}
+#gsearch-results{
+  flex:1;           /* ocupa espaço restante */
+  overflow-y:auto;  /* scroll apenas aqui */
+  min-height:0;     /* essencial: permite scroll funcionar em flex */
+  width:100%;
+  padding-right:4px;/* espaço para scrollbar */
+  scroll-behavior:smooth;
+}
+/* Scrollbar estilizada na lista de busca */
+#gsearch-results::-webkit-scrollbar{width:6px;}
+#gsearch-results::-webkit-scrollbar-track{background:transparent;}
+#gsearch-results::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+#gsearch-results::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+#gsearch-body{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;}
 .gs-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .12s;}
 .gs-item:hover{border-color:var(--accent);background:var(--surface2);}
 .gs-item-icon{width:44px;height:44px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden;}
@@ -501,6 +524,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
 .hpop-label{font-weight:600;font-size:14px;}
 .hpop-sub{font-size:12px;color:var(--muted);}
 .hpop-btn.danger .hpop-sub{color:rgba(255,107,107,.5);}
+
+/* ─── Server toggle button (admin) ─── */
+.srv-toggle{padding:8px 14px;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Oswald',sans-serif;letter-spacing:.5px;min-width:88px;}
+.srv-toggle.on {background:rgba(45,198,83,.15);border:1px solid var(--green);color:var(--green);}
+.srv-toggle.off{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.35);color:var(--accent2);}
+.srv-toggle.on:hover {background:rgba(45,198,83,.28);}
+.srv-toggle.off:hover{background:rgba(230,57,70,.22);}
+.srv-btn-row{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding-top:18px;}
+
+/* ─── Client server selector (sidebar) ─── */
+.srv-selector{display:flex;gap:5px;padding:8px 14px 2px;}
+.srv-sel-btn{flex:1;padding:7px 2px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;text-align:center;font-family:'Oswald',sans-serif;letter-spacing:.5px;transition:all .15s;white-space:nowrap;}
+.srv-sel-btn:hover{border-color:var(--blue);color:var(--text);}
+.srv-sel-btn.active{background:rgba(67,97,238,.18);border-color:var(--blue);color:#91b4ff;}
+.srv-sel-btn.srv-disabled{opacity:.3;cursor:not-allowed;pointer-events:none;}
+.srv-sel-label{padding:6px 14px 0;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -726,12 +765,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Source
       </div>
     </div>
     <!-- Botões ação -->
+    <div class="srv-sel-label">Servidor</div>
+    <div class="srv-selector" id="srv-selector">
+      <button class="srv-sel-btn active" id="srv-sel-0" onclick="switchServer(0)">SRV-1</button>
+      <button class="srv-sel-btn" id="srv-sel-1" onclick="switchServer(1)">SRV-2</button>
+      <button class="srv-sel-btn" id="srv-sel-2" onclick="switchServer(2)">SRV-3</button>
+      <button class="srv-sel-btn" id="srv-sel-3" onclick="switchServer(3)">SRV-4</button>
+    </div>
     <div class="hp-action-btns">
       <button class="hp-action-btn" id="btn-admin" onclick="openAdminPanel()" style="display:none" title="Painel Admin">
         <span class="btn-icon">🛡</span> Painel Admin
       </button>
-      <button class="hp-action-btn danger" onclick="doAuthLogout()" title="Sair do app">
-        <span class="btn-icon">⏻</span> Sair do App
+      <button class="hp-action-btn" onclick="doAuthLogout()" title="Voltar ao Login">
+        <span class="btn-icon">↩</span> Voltar ao Login
+      </button>
+      <button class="hp-action-btn danger" onclick="closeApp()" title="Fechar o aplicativo">
+        <span class="btn-icon">⏻</span> Fechar APP
       </button>
     </div>
   </div>
@@ -1163,6 +1212,7 @@ async function doAuthLogin() {
     if (data.isAdmin) { isAdmin=true; document.getElementById('btn-admin').style.display=''; }
     hideAuthPage();
     document.getElementById('app').classList.add('show');
+    updateServerSelectorUI(data.srvIdx||0);
     selectSection('favs');
     toast('Bem-vindo, '+(data.name||username)+'! ✅','ok');
   } catch(e) { showAuthErr('Erro de conexão: '+e.message); }
@@ -1193,6 +1243,7 @@ async function checkSavedSession() {
     renewSession();
     document.getElementById('app').classList.add('show');
     if (saved.isAdmin) document.getElementById('btn-admin').style.display='';
+    updateServerSelectorUI(saved.srvIdx||0);
     selectSection('favs');
     toast('Bem-vindo de volta, '+(saved.name||saved.username)+'! ✅','ok');
     return true;
@@ -1254,6 +1305,7 @@ async function openAdminFromLogin() {
   hideAuthPage();
   document.getElementById('app').classList.add('show');
   document.getElementById('btn-admin').style.display='';
+  updateServerSelectorUI(0);
   selectSection('favs');
   toast('Bem-vindo, Admin! 🛡','ok');
 }
@@ -1354,38 +1406,118 @@ async function kickSession(id){if(!confirm('Encerrar esta sessão?'))return;try{
 // ── SERVIDORES (Firestore — cliente nunca vê) ───────
 async function loadServerConfigs() {
   if (serverConfigs) return;
+  // 1. Tenta Firestore
   try {
     const doc = await db.collection('config').doc('servers').get();
-    if (doc.exists) { serverConfigs=doc.data(); return; }
-    // Fallback padrão se doc não existir ainda
-    serverConfigs = { s0:{url:'https://toppcard.fun',iptv_user:'venrkdml7n02',iptv_pass:'71985344834'}, s1:{url:'',iptv_user:'',iptv_pass:''}, s2:{url:'',iptv_user:'',iptv_pass:''}, s3:{url:'',iptv_user:'',iptv_pass:''} };
-    await db.collection('config').doc('servers').set(serverConfigs);
-  } catch(e) { serverConfigs = serverConfigs || { s0:{url:'https://toppcard.fun',iptv_user:'venrkdml7n02',iptv_pass:'71985344834'}, s1:{url:'',iptv_user:'',iptv_pass:''}, s2:{url:'',iptv_user:'',iptv_pass:''}, s3:{url:'',iptv_user:'',iptv_pass:''} }; }
+    if (doc.exists) { serverConfigs=doc.data(); _cacheServersLocal(); return; }
+  } catch(_){}
+  // 2. Fallback localStorage (funciona sem permissão Firestore)
+  try {
+    const ls = JSON.parse(localStorage.getItem('stv_server_cfg')||'null');
+    if (ls) { serverConfigs=ls; return; }
+  } catch(_){}
+  // 3. Padrão inicial
+  serverConfigs = {
+    s0:{url:'https://toppcard.fun',  iptv_user:'venrkdml7n02',iptv_pass:'71985344834',enabled:true},
+    s1:{url:'http://toppcard.fun',   iptv_user:'venrkdml7n02',iptv_pass:'71985344834',enabled:true},
+    s2:{url:'https://pedidoonline.space',iptv_user:'venrkdml7n02',iptv_pass:'71985344834',enabled:true},
+    s3:{url:'https://adplayer.online',  iptv_user:'venrkdml7n02',iptv_pass:'71985344834',enabled:true}
+  };
+  _cacheServersLocal();
+}
+function _cacheServersLocal() {
+  try { localStorage.setItem('stv_server_cfg', JSON.stringify(serverConfigs)); } catch(_){}
 }
 function renderServerEditor() {
   const ed=document.getElementById('srv-editor'); ed.innerHTML='';
   const labels=['CPStreamTV-S1','CPStreamTV-S2','CPStreamTV-S3','CPStreamTV-S4'];
   for(let i=0;i<4;i++){
-    const s=serverConfigs?.['s'+i]||{url:'',iptv_user:'',iptv_pass:''};
+    const s=serverConfigs?.['s'+i]||{url:'',iptv_user:'',iptv_pass:'',enabled:true};
+    const on=s.enabled!==false;
     const div=document.createElement('div'); div.className='srv-block';
-    div.innerHTML=`<div class="srv-lbl">${labels[i]}</div><div class="adm-row"><div class="adm-field"><label>URL do Servidor</label><input id="srv-url-${i}" type="text" value="${esc(s.url||'')}" placeholder="http://servidor.com"/></div><div class="adm-field"><label>Usuário IPTV</label><input id="srv-user-${i}" type="text" value="${esc(s.iptv_user||'')}" placeholder="usuário"/></div></div><div class="adm-row" style="margin-top:8px"><div class="adm-field"><label>Senha IPTV</label><input id="srv-pass-${i}" type="text" value="${esc(s.iptv_pass||'')}" placeholder="senha"/></div><div class="adm-field" style="justify-content:flex-end;padding-top:18px"><button onclick="testServer(${i})" class="adm-btn sec">🔌 Testar</button></div></div>`;
+    div.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="srv-lbl" style="margin:0">${labels[i]}</div>
+        <button id="srv-tog-${i}" class="srv-toggle ${on?'on':'off'}"
+          onclick="toggleServerEnabled(${i})">
+          ${on?'🟢 ATIVO':'🔴 INATIVO'}
+        </button>
+      </div>
+      <div class="adm-row">
+        <div class="adm-field"><label>URL do Servidor</label>
+          <input id="srv-url-${i}" type="text" value="${esc(s.url||'')}" placeholder="http://servidor.com"/></div>
+        <div class="adm-field"><label>Usuário IPTV</label>
+          <input id="srv-user-${i}" type="text" value="${esc(s.iptv_user||'')}" placeholder="usuário"/></div>
+      </div>
+      <div class="adm-row" style="margin-top:8px">
+        <div class="adm-field"><label>Senha IPTV</label>
+          <input id="srv-pass-${i}" type="text" value="${esc(s.iptv_pass||'')}" placeholder="senha"/></div>
+        <div class="srv-btn-row">
+          <button onclick="testServer(${i})" class="adm-btn sec">🔌 Testar</button>
+        </div>
+      </div>`;
     ed.appendChild(div);
   }
 }
+
+function toggleServerEnabled(i) {
+  if (!serverConfigs) return;
+  const s = serverConfigs['s'+i] || {};
+  s.enabled = !( s.enabled !== false );
+  serverConfigs['s'+i] = s;
+  const btn = document.getElementById('srv-tog-'+i);
+  if (btn) {
+    btn.className = 'srv-toggle ' + (s.enabled ? 'on' : 'off');
+    btn.textContent = s.enabled ? '🟢 ATIVO' : '🔴 INATIVO';
+  }
+  // Atualiza sidebar do cliente
+  updateServerSelectorUI();
+}
+
 async function saveServers(){
   const data={};
-  for(let i=0;i<4;i++) data['s'+i]={url:document.getElementById('srv-url-'+i).value.trim().replace(/\/+$/,''),iptv_user:document.getElementById('srv-user-'+i).value.trim(),iptv_pass:document.getElementById('srv-pass-'+i).value.trim()};
-  try{await db.collection('config').doc('servers').set(data);serverConfigs=data;clearAllCache();showSrvMsg('✅ Servidores salvos!','ok');}catch(e){showSrvMsg('❌ Erro: '+e.message,'err');}
+  for(let i=0;i<4;i++){
+    const cur = serverConfigs?.['s'+i]||{};
+    data['s'+i]={
+      url:      document.getElementById('srv-url-'+i).value.trim().replace(/\/+$/,''),
+      iptv_user:document.getElementById('srv-user-'+i).value.trim(),
+      iptv_pass:document.getElementById('srv-pass-'+i).value.trim(),
+      enabled:  cur.enabled !== false  // mantém estado do toggle
+    };
+  }
+  serverConfigs = data;
+  // Salva no localStorage sempre (sem depender de Firestore)
+  _cacheServersLocal();
+  // Tenta salvar no Firestore também
+  try {
+    await db.collection('config').doc('servers').set(data);
+    showSrvMsg('✅ Servidores salvos com sucesso!','ok');
+  } catch(e) {
+    // Firestore falhou mas localStorage está ok
+    showSrvMsg('✅ Salvo localmente! (Firestore: '+e.message.slice(0,40)+'...)','ok');
+  }
+  clearAllCache();
+  updateServerSelectorUI();
 }
+
 async function testServer(i){
-  const url=document.getElementById('srv-url-'+i).value.trim().replace(/\/+$/,'');
+  const url =document.getElementById('srv-url-'+i).value.trim().replace(/\/+$/,'');
   const user=document.getElementById('srv-user-'+i).value.trim();
   const pass=document.getElementById('srv-pass-'+i).value.trim();
   if(!url||!user||!pass){showSrvMsg('Preencha URL, usuário e senha.','err');return;}
-  showSrvMsg('Testando S'+(i+1)+'...','ok');
-  try{const r=await Promise.race([fetch(`${url}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`).then(r=>r.json()),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);showSrvMsg(Array.isArray(r)?'✅ S'+(i+1)+' OK — '+r.length+' categorias':'⚠ Resposta inesperada',Array.isArray(r)?'ok':'err');}catch(e){showSrvMsg('❌ S'+(i+1)+': '+e.message,'err');}
+  showSrvMsg('⏳ Testando S'+(i+1)+'...','ok');
+  try{
+    const r=await Promise.race([
+      fetch(`${url}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`).then(r=>r.json()),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout 8s')),8000))
+    ]);
+    showSrvMsg(Array.isArray(r)
+      ?'✅ S'+(i+1)+' OK — '+r.length+' categorias ao vivo'
+      :'⚠ S'+(i+1)+' respondeu mas formato inesperado',
+      Array.isArray(r)?'ok':'err');
+  }catch(e){showSrvMsg('❌ S'+(i+1)+': '+e.message,'err');}
 }
-function showSrvMsg(msg,type){const el=document.getElementById('srv-msg');el.textContent=msg;el.className='adm-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',5000);}
+function showSrvMsg(msg,type){const el=document.getElementById('srv-msg');el.textContent=msg;el.className='adm-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',6000);}
 
 // ── Limpa todo o cache de sessão ────────────────────
 function clearAllCache() {
@@ -1394,6 +1526,54 @@ function clearAllCache() {
   gsAllData = {}; gsLoaded = { live:false, movies:false, series:false };
   allCats=[]; allItems=[]; visItems=[];
   try { localStorage.removeItem('stv_ch_cache'); } catch(_){}
+}
+
+// ── Troca de servidor pelo cliente ──────────────────
+function switchServer(idx) {
+  if (!serverConfigs) return;
+  const s = serverConfigs['s'+idx];
+  if (!s || !s.url) { toast('SRV-'+(idx+1)+' não configurado','err'); return; }
+  if (s.enabled === false) { toast('SRV-'+(idx+1)+' está desativado','err'); return; }
+  CFG = { server:s.url, user:s.iptv_user, pass:s.iptv_pass, isM3U:false };
+  if (currentUser) {
+    currentUser.srvIdx = idx;
+    localStorage.setItem('stv_session', JSON.stringify(currentUser));
+  }
+  clearAllCache();
+  updateServerSelectorUI(idx);
+  // Volta para favoritos ao trocar servidor
+  selectSection('favs');
+  toast('✅ SRV-'+(idx+1)+' ativado','ok');
+}
+
+function updateServerSelectorUI(activeIdx) {
+  for (let i=0;i<4;i++) {
+    const btn = document.getElementById('srv-sel-'+i);
+    if (!btn) continue;
+    const s = serverConfigs?.['s'+i];
+    const isDisabled = !s || !s.url || s.enabled===false;
+    const isActive   = (activeIdx !== undefined) ? i===activeIdx : i===(currentUser?.srvIdx||0);
+    btn.className = 'srv-sel-btn' + (isActive?' active':'') + (isDisabled?' srv-disabled':'');
+  }
+}
+
+// ── Fechar o aplicativo completamente ───────────────
+function closeApp() {
+  if (!confirm('Fechar o CPStreamTV?')) return;
+  try { stopPlayer(); } catch(_){}
+  // Tenta fechar a aba/janela
+  window.close();
+  // Se não fechou (aba original do browser), mostra tela limpa
+  setTimeout(() => {
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+        height:100vh;background:#0d0d14;color:#fff;gap:20px;font-family:Arial,sans-serif;">
+        <div style="font-family:'Oswald',sans-serif;font-size:48px;font-weight:700;letter-spacing:4px;">
+          <span style="color:#4361ee">CP</span>StreamTV
+        </div>
+        <div style="color:#666;font-size:16px;">App encerrado. Feche esta aba.</div>
+      </div>`;
+  }, 300);
 }
 
 // ═══════════════════════════════════════════════════
